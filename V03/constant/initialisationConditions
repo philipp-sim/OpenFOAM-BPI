@@ -1,0 +1,43 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+        format      ascii;
+        class       dictionary;
+        location    "constant";
+        object      initialisationConditions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+
+internalField
+    {
+        T                   307.175;
+        CO2		    2870;
+        relHumidity	    0.50;
+        specificHumidity    .01725589153574350662;
+        Y_CO2    .00855233712860335418;
+    }
+
+atmosphere
+    {
+        T                   303.4;
+        CO2		    473;
+        relHumidity	    0.80;
+        specificHumidity    .02207508973589432936;
+        Y_CO2    .00141623725813391246;
+    }
+
+surface
+    {
+        T                   303.4;
+    }
+
+
+

@@ -1,0 +1,59 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      specificHumidity;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+#include "${FOAM_CASE}/constant/initialisationConditions"
+
+
+dimensions      [0 0 0 0 0 0 0]; //kg/kg
+
+internalField  uniform $!internalField/specificHumidity;
+
+
+boundaryField
+{
+    #includeEtc "caseDicts/setConstraintTypes"
+    
+    atmosphere
+    {
+        type            inletOutlet;
+        inletValue      uniform $!atmosphere/specificHumidity;
+        value           uniform $!atmosphere/specificHumidity;
+    }
+    
+
+    staticWalls
+    {
+    type            zeroGradient;
+    }
+
+    movingWalls
+    {
+    $staticWalls;
+    }
+
+    nonCouple
+    {
+        type            zeroGradient;
+    }
+
+    ".*"
+    {
+        type            zeroGradient;
+    }
+}
+
+
+// ************************************************************************* //

@@ -1,0 +1,27 @@
+# Wavefront OBJ file written 2025-06-08T10:07:51
+o atmosphere_edgeMesh
+
+# points : 8
+# lines  : 8
+
+# <points count="8">
+v -4.15 -0.2025 10
+v 5.85 -0.2025 10
+v 5.85 -10.2025 10
+v -4.15 -10.2025 10
+v -4.15 6.2025 10
+v -4.15 16.2025 10
+v 5.85 16.2025 10
+v 5.85 6.2025 10
+# </points>
+
+# <edges count="8">
+l 1 2
+l 2 3
+l 3 4
+l 4 1
+l 5 6
+l 6 7
+l 7 8
+l 8 5
+# </edges>

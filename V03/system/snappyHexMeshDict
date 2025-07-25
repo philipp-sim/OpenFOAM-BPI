@@ -1,0 +1,257 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      snappyHexMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+castellatedMesh true;
+snap            true;
+addLayers       false;
+
+geometry
+{
+    /*couple
+    {
+        type        triSurfaceMesh;
+        file        "couple.stl";
+    }
+
+    rotorBlades
+    {
+        type        triSurfaceMesh;
+        file        "rotorBlades.stl";
+    }*/
+
+    innerInlet
+    {
+        type        triSurfaceMesh;
+        file        "innerInlet.stl";
+    }
+
+    atmosphere_outlet
+    {
+        type        triSurfaceMesh;
+        file        "atmosphere_outlet.stl";
+    }
+
+    walls
+    {
+        type        triSurfaceMesh;
+        file        "walls.stl";
+    }
+
+    window
+    {
+        type        triSurfaceMesh;
+        file        "window.stl";
+    }
+
+    indoor_volume
+    {
+        type searchableBox;
+        min (0 -0.2 0);
+        max (1.725 3.3 2.7);
+    }
+    
+    /*emission_zone
+    {
+        type searchableSphere;
+        centre (1.25 1.25 1.25); 
+        radius 0.1;       
+    }*/
+};
+
+castellatedMeshControls
+{
+    maxLocalCells 100000;
+    maxGlobalCells 2000000;
+    minRefinementCells 0;
+    maxLoadUnbalance 0.10;
+    nCellsBetweenLevels 5;
+
+    features
+    (
+        /*{
+            file        "couple.eMesh";
+            level       2;
+        }
+        {
+            file        "rotorBlades.eMesh";
+            level       2;
+        }*/
+        {
+            file        "walls.eMesh";
+            level       3;
+        }
+        {
+            file        "window.eMesh";
+            level       4;
+        }
+        {
+            file        "atmosphere_outlet.eMesh";
+            level       2;
+        }
+        {
+            file        "innerInlet.eMesh";
+            level       2;
+        }
+    );
+
+    refinementSurfaces
+    {
+        emission_zone
+        {
+            level (2 8);
+            faceZone    emissionzone;
+            cellZone    emissionzone;
+            cellZoneInside inside;
+            boundary    internal;
+        }
+
+        couple
+        {
+            level       (1 1);
+            faceZone    couple;
+            cellZone    rotating;
+            mode        inside;
+        }
+
+        innerInlet
+        {
+            level       (2 2);
+            patchInfo
+            {
+                type wall;
+                inGroups (atmosphere);
+            }
+        }
+
+        atmosphere_outlet
+        {
+            level       (2 2);
+            patchInfo
+            {
+                type patch;
+                inGroups (atmosphere);
+            }
+        }
+
+        rotorBlades
+        {
+            level       (4 4);
+            patchInfo
+            {
+                type wall;
+                inGroups (movingWalls);
+            }
+            faceZone rotorBlades;
+            faceType baffle;
+        }
+
+        walls
+        {
+            level       (2 3);
+            patchInfo
+            {
+                type wall;
+                inGroups (staticWalls);
+            }
+        }
+
+        window
+        {
+            level       (3 4);
+            patchInfo
+            {
+                type wall;
+                inGroups (staticWalls);
+            }
+        }
+
+    }
+    refinementRegions
+    {
+        couple
+        {
+            mode inside;
+            levels ((1 2)); // 1 3
+        }
+	    indoor_volume
+        {
+            mode inside;
+            levels ((1 3)); // 1 3
+        }
+    }
+    resolveFeatureAngle 30;
+
+    insidePoint (1 1 1);
+
+    allowFreeStandingZoneFaces true;
+}
+
+snapControls
+{
+    nSmoothPatch 3;
+    tolerance 1.0;
+    nSolveIter 100;
+    nRelaxIter 5;
+    nFeatureSnapIter 10;//5;
+}
+
+addLayersControls
+{
+    relativeSizes true;
+    layers
+    {
+    }
+    expansionRatio 1.0;
+    finalLayerThickness 0.3;
+    minThickness 0.1;
+    nGrow 0;
+    featureAngle 60;
+    slipFeatureAngle 15;
+    nRelaxIter 3;
+    nSmoothSurfaceNormals 1;
+    nSmoothNormals 3;
+    nSmoothThickness 10;
+    maxFaceThicknessRatio 0.5;
+    maxThicknessToMedialRatio 0.3;
+    minMedianAxisAngle 90;
+    nBufferCellsNoExtrude 0;
+    nLayerIter 50;
+}
+
+meshQualityControls
+{
+    maxNonOrtho 65;
+
+    maxBoundarySkewness 20;
+    maxInternalSkewness 4;
+
+    maxConcave 80;
+    minVol -1e30;
+    minTetQuality -1;
+    minTwist 0.01;
+    minDeterminant 0.001;
+    minFaceWeight 0.05;
+    minVolRatio 0.01;
+    nSmoothScale 4;
+    errorReduction 0.75;
+    relaxed
+    {
+        maxNonOrtho 75;
+    }
+}
+
+mergeTolerance 1e-6;
+
+// ************************************************************************* //
