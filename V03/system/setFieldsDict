@@ -26,6 +26,7 @@ regions
         (
             volScalarFieldValue T $!atmosphere/T
             volScalarFieldValue CO2 $!atmosphere/CO2
+            volScalarFieldValue Y_CO2 $!atmosphere/Y_CO2
             volScalarFieldValue specificHumidity $!atmosphere/specificHumidity
         );
     }
@@ -36,6 +37,7 @@ regions
         (
             volScalarFieldValue T $!atmosphere/T
             volScalarFieldValue CO2 $!atmosphere/CO2
+            volScalarFieldValue Y_CO2 $!atmosphere/Y_CO2
             volScalarFieldValue specificHumidity $!atmosphere/specificHumidity
         );
     }
