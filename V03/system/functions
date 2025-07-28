@@ -70,8 +70,8 @@ CO2Eqn
         volScalarField& Y_CO2 = mesh().lookupObjectRef<volScalarField>("Y_CO2");
 		const volScalarField& T = mesh().lookupObject<volScalarField>("T");
         const volVectorField& U = mesh().lookupObject<volVectorField>("U");
-		const volScalarField& rho = mesh().lookupObject<volScalarField>("rho");
-		const surfaceScalarField& phi = mesh().lookupObject<surfaceScalarField>("phi");
+		//const volScalarField& rho = mesh().lookupObject<volScalarField>("rho");
+		//const surfaceScalarField& phi = mesh().lookupObject<surfaceScalarField>("phi");
 		const Foam::fvModels& fvModels(Foam::fvModels::New(this->mesh()));
 		const Foam::fvConstraints& fvConstraints(Foam::fvConstraints::New(this->mesh()));
 		const dimensionedScalar D_CO2(physicalProperties.lookup("D_CO2"));
@@ -86,7 +86,8 @@ CO2Eqn
         
 
 		dimensionedScalar M_CO2 = M_C + 2 * M_O; // kg/mol
-		volScalarField M_Air = M_N * 0.78 + M_O * (0.21 - CO2/1e6) + M_Ar * 0.01 + M_CO2 * (CO2/1e6); // kg/mol
+		volScalarField M_Air = 2 * M_N * 0.78 + 2 * M_O * (0.21 - CO2/1e6) + M_Ar * 0.01 + M_CO2 * (CO2/1e6); // kg/mol
+        //volScalarField M_Air = M_N * 0.78 + M_O * (0.21 - CO2/1e6) + M_Ar * 0.01 + M_CO2 * (CO2/1e6); // kg/mol
 		volScalarField Mol_co2_part =  M_CO2 * (CO2 / 1e6); // kg/mol Part from M_Air
 		tmp<volScalarField> rho_mix = (M_Air * P) / (Rm * T); // kg/m³ mixture
 
@@ -118,8 +119,8 @@ CO2Eqn
 		fvScalarMatrix CO2Eqn =
 			fvm::ddt(rho_co2, Y_CO2)
             + fvm::div(phi_co2, Y_CO2,"div(phi,CO2)")
-            - fvm::laplacian(rho_co2*D_CO2, Y_CO2);
-            //== fvModels.source(rho_co2, Y_CO2);
+            - fvm::laplacian(rho_co2*D_CO2, Y_CO2)
+            == fvModels.source(rho_co2, Y_CO2);
 			
 		fvConstraints.constrain(CO2Eqn);
 		CO2Eqn.relax();
@@ -168,6 +169,11 @@ DataExtract
         #include "OFstream.H"
         #include <thread>
         #include <chrono>
+        #include "volFields.H"
+		#include "fvc.H"
+		#include "fvm.H"
+		#include "fvModels.H"
+		#include "fvConstraints.H"
     #};
 
     codeLibs
@@ -329,6 +335,136 @@ DataExtract
             return true;
         };
 
+        auto extractEnergyLoss = [&](const word& fieldName, const vector& lower, const vector& upper, const scalar& roundedTime)
+        {
+            const volScalarField& T = mesh().lookupObject<volScalarField>(fieldName);
+            const surfaceScalarField& phi = mesh().lookupObject<surfaceScalarField>("phi");
+            const fvPatchList& patches = mesh().boundary();
+            const scalar cp = 1005.0;
+
+            // Step 1: Collect all relevant face data locally (refactored)
+            List<vector> localPts;
+            List<scalar> localPhiVals;
+            List<scalar> localTvals;
+
+            forAll(phi.boundaryField(), patchI)
+            {
+                const Field<scalar>& phiP = phi.boundaryField()[patchI];
+                const Field<scalar>& Tp = T.boundaryField()[patchI];
+                const vectorField& Cf = patches[patchI].Cf();
+
+                forAll(phiP, faceI)
+                {
+                    const vector& pt = Cf[faceI];
+                    if ((pt.x() >= lower.x() && pt.x() <= upper.x()) &&
+                        (pt.y() >= lower.y() && pt.y() <= upper.y()) &&
+                        (pt.z() >= lower.z() && pt.z() <= upper.z()))
+                    {
+                        localPts.append(pt);
+                        localPhiVals.append(phiP[faceI]);
+                        localTvals.append(Tp[faceI]);
+                    }
+                }
+            }
+
+            List<vector> allPts;
+            List<scalar> allPhiVals;
+            List<scalar> allTvals;
+
+            if (Pstream::master())
+            {
+                allPts = localPts;
+                allPhiVals = localPhiVals;
+                allTvals = localTvals;
+
+                for (int procI = 1; procI < Pstream::nProcs(); ++procI)
+                {
+                    IPstream fromProc(Pstream::commsTypes::blocking, procI);
+                    label n;
+                    fromProc >> n;
+
+                    for (label i = 0; i < n; ++i)
+                    {
+                        vector pt;
+                        scalar phiVal, Tval;
+                        fromProc >> pt >> phiVal >> Tval;
+                        allPts.append(pt);
+                        allPhiVals.append(phiVal);
+                        allTvals.append(Tval);
+                    }
+                }
+            }
+            else
+            {
+                OPstream toMaster(Pstream::commsTypes::blocking, 0);
+                label n = localPts.size();
+                toMaster << n;
+                forAll(localPts, i)
+                {
+                    toMaster << localPts[i] << localPhiVals[i] << localTvals[i];
+                }
+            }
+            // Step 2: On master, process and output
+            if (Pstream::master())
+            {
+                scalar mIn = 0.0, mOut = 0.0;
+                scalar eIn = 0.0, eOut = 0.0;
+                label debugFaceCount = 0;
+
+                forAll(allPts, i)
+                {
+                    const vector& pt = allPts[i];
+                    const scalar phiVal = allPhiVals[i];
+                    const scalar temp = allTvals[i];
+                    if (mag(phiVal) != 0)
+                    {
+                        Info << "  [Face] pt: " << pt << ", phi: " << phiVal << ", T: " << temp
+                             << ", mdot: " << mag(phiVal) << ", energy: " << mag(phiVal)*cp*temp << endl;
+                        ++debugFaceCount;
+                    }
+
+                    if (phiVal < 0)
+                    {
+                        scalar mdotIn = mag(phiVal);
+                        mIn += mdotIn;
+                        eIn += mdotIn * cp * temp;
+                    }
+                    else if (phiVal > 0)
+                    {
+                        scalar mdotOut = phiVal;
+                        mOut += mdotOut;
+                        eOut += mdotOut * cp * temp;
+                    }
+                }
+
+                Info << "Total contributing faces in volume: " << debugFaceCount << endl;
+
+                scalar Tin = (mIn > SMALL) ? eIn / (mIn * cp) : 0.0;
+                scalar Tout = (mOut > SMALL) ? eOut / (mOut * cp) : 0.0;
+                scalar deltaT = Tin - Tout;
+                scalar Qdot = mOut * cp * deltaT;
+
+                fileName mergedDir = mesh().time().globalPath() / "postProcess" / "EnergyLoss";
+                mkDir(mergedDir);
+                fileName mergedOutputPath = mergedDir / "Data";
+                if (roundedTime == 0 && isFile(mergedOutputPath))
+                {
+                    std::remove(mergedOutputPath.c_str());
+                }
+
+                std::ofstream merged(mergedOutputPath.c_str(), std::ios::app);
+                merged << "--- Energy Loss (roundedTime = " << roundedTime << ") ---\n";
+                merged << "T_in    = " << Tin << " K\n";
+                merged << "T_out   = " << Tout << " K\n";
+                merged << "Delta T = " << deltaT << " K\n";
+                merged << "Qdot    = " << Qdot << " W\n";
+                merged << "----------------------------------------------\n";
+                merged.close();
+            }
+        };
+
+
+
         static scalar lastWrittenTime = -1;
         scalar writeInterval = 1; 
         scalar time = mesh().time().value();
@@ -344,11 +480,14 @@ DataExtract
             //extractFieldData("U", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             extractFieldData("CO2", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             extractFieldData("T", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
-            extractFieldData("alphat", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
-            extractFieldData("epsilon", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
+            //extractFieldData("alphat", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
+            //extractFieldData("epsilon", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             extractFieldData("k", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
-            extractFieldData("nut", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
-            extractFieldData("p", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
+            //extractFieldData("nut", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
+            //extractFieldData("p", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
+
+
+            extractEnergyLoss("T", vector(0.531, -0.10, 0.867), vector(1.571, 0, 2.157), roundedTime);
         }
     #};
 }
