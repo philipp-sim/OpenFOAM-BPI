@@ -169,11 +169,18 @@ DataExtract
         #include "OFstream.H"
         #include <thread>
         #include <chrono>
+        #include <map>
         #include "volFields.H"
 		#include "fvc.H"
 		#include "fvm.H"
 		#include "fvModels.H"
 		#include "fvConstraints.H"
+        #include <cmath>
+        #include <fstream>
+        #include "plane.H"
+        #include "polygonTriangulate.H"
+        #include <vector>
+        #include <array>
     #};
 
     codeLibs
@@ -183,290 +190,490 @@ DataExtract
 
     codeExecute
     #{
-        auto extractFieldData = [&](const word& fieldName, const vector& lower, const vector& upper, const scalar& roundedTime)
+
+        struct SliceIntersection
         {
+            label cellId;                    // ID der geschnittenen Zelle
+            vector centroid;                 // Zentroid der Schnittfläche
+            scalar area;                     // Fläche der Schnittfläche
+            vector normal;                   // Normale der Schnittfläche
+            label neighborCellId;            // ID der Nachbarzelle auf der anderen Seite
+            scalar distance;                 // Abstand vom Zellzentrum zur Slice
+            scalar weight;                   // Gewichtung für Interpolation
+        };
+
+        // Auto-Funktion zur Berechnung der Slice-Intersektionen (nur einmal aufgerufen)
+        auto calculateSliceIntersections = [&](const vector& slicePoint, const vector& sliceNormal) -> std::vector<SliceIntersection>
+        {
+            std::vector<SliceIntersection> intersections;
             const fvMesh& mesh = this->mesh();
-            const pointField& centres = mesh.C();
-            bool isParallel = (Pstream::parRun() && Pstream::nProcs() > 1);
-
-            fileName mergedDir = mesh.time().globalPath() / "postProcess" / fieldName;
-            mkDir(mergedDir);
-            fileName mergedOutputPath = mergedDir / "Data";
-            if (roundedTime == 0 && isFile(mergedOutputPath))
+            const scalar tolerance = 1e-10;
+            
+            Info << "Calculating slice intersections (one-time calculation)" << endl;
+            Info << "Slice point: " << slicePoint << ", Normal: " << sliceNormal << endl;
+            
+            forAll(mesh.C(), cellI)
             {
-                std::remove(mergedOutputPath.c_str());
-            }
-
-            fileName procOutputPath;
-            if (isParallel)
-            {
-                procOutputPath = mesh.time().path() / (fieldName + "_" + Foam::name(roundedTime) + "_proc" + Foam::name(Pstream::myProcNo()));
-            }
-            else
-            {
-                procOutputPath = mergedDir / Foam::name(roundedTime);
-            }
-
-            if (isFile(procOutputPath))
-            {
-                std::remove(procOutputPath.c_str());
-            }
-
-            std::ostringstream buffer;
-
-            if (mesh.foundObject<volScalarField>(fieldName))
-            {
-                const volScalarField& field = mesh.lookupObject<volScalarField>(fieldName);
-                buffer << "x,y,z," << fieldName << "\n";
-
-                forAll(field, cellI)
+                const cell& cellFaces = mesh.cells()[cellI];
+                
+                // Prüfe ob Zelle die Slice-Ebene schneidet
+                scalar minDistance = GREAT;
+                scalar maxDistance = -GREAT;
+                
+                // Berechne Distanzen aller Zellpunkte zur Slice-Ebene
+                forAll(cellFaces, fI)
                 {
-                    const point& p = centres[cellI];
-                    if ((p.x() >= lower.x() && p.x() <= upper.x()) &&
-                        (p.y() >= lower.y() && p.y() <= upper.y()) &&
-                        (p.z() >= lower.z() && p.z() <= upper.z()))
+                    label faceI = cellFaces[fI];
+                    const face& f = mesh.faces()[faceI];
+                    forAll(f, pointI)
                     {
-                        scalar val = field[cellI];
-                        buffer << p.x() << "," << p.y() << "," << p.z() << "," << val << "\n";
+                        const point& p = mesh.points()[f[pointI]];
+                        scalar dist = (p - slicePoint) & sliceNormal;
+                        minDistance = min(minDistance, dist);
+                        maxDistance = max(maxDistance, dist);
                     }
                 }
-            }
-            else if (mesh.foundObject<volVectorField>(fieldName))
-            {
-                const volVectorField& field = mesh.lookupObject<volVectorField>(fieldName);
-                buffer << "x,y,z," << fieldName << "_x," << fieldName << "_y," << fieldName << "_z," << fieldName << "_mag\n";
-
-                forAll(field, cellI)
+                
+                // Zelle schneidet Slice wenn min und max unterschiedliche Vorzeichen haben
+                bool cellIntersectsSlice = (minDistance <= tolerance && maxDistance >= -tolerance);
+                
+                if (cellIntersectsSlice)
                 {
-                    const point& p = centres[cellI];
-                    if ((p.x() >= lower.x() && p.x() <= upper.x()) &&
-                        (p.y() >= lower.y() && p.y() <= upper.y()) &&
-                        (p.z() >= lower.z() && p.z() <= upper.z()))
+                    // Sammle eindeutige Schnittpunkte von Zellkanten mit der Slice-Ebene
+                    DynamicList<point> intersectionPoints;
+                    
+                    // Sammle alle eindeutigen Kanten der Zelle
+                    labelHashSet processedEdges;
+                    
+                    forAll(cellFaces, fI)
                     {
-                        const vector& val = field[cellI];
-                        buffer << p.x() << "," << p.y() << "," << p.z() << ","
-                               << val.x() << "," << val.y() << "," << val.z() << ","
-                               << mag(val) << "\n";
-                    }
-                }
-            }
-            else
-            {
-                Info << "Field " << fieldName << " not found or unsupported type." << endl;
-                return true;
-            }
-
-            std::ofstream output(procOutputPath.c_str());
-            output << buffer.str();
-            output.close();
-
-            Info << fieldName << " values written to " << procOutputPath << endl;
-
-            if (isParallel)
-            {
-                scalar dummy = 0;
-                Pstream::scatter(dummy);
-
-                if (Pstream::myProcNo() == 0)
-                {
-                    std::ofstream merged(mergedOutputPath.c_str(), std::ios::app);
-                    merged << "Timestep" << Foam::name(roundedTime) << "\n";
-
-                    for (int procNo = 0; procNo < Pstream::nProcs(); ++procNo)
-                    {
-                        fileName procDir = mesh.time().globalPath() / ("processor" + Foam::name(procNo));
-                        fileName filePath = procDir / (fieldName + "_" + Foam::name(roundedTime) + "_proc" + Foam::name(procNo));
-                        const int maxWaitMs = 1000;
-                        bool fileAvailable = false;
-                        for (int waitMs = 0; waitMs < maxWaitMs; ++waitMs)
+                        label faceI = cellFaces[fI];
+                        const face& f = mesh.faces()[faceI];
+                        
+                        forAll(f, edgeI)
                         {
-                            if (isFile(filePath))
+                            label p1 = f[edgeI];
+                            label p2 = f[(edgeI + 1) % f.size()];
+                            
+                            // Erstelle eindeutige Kanten-ID (kleinerer Index zuerst)
+                            label minP = min(p1, p2);
+                            label maxP = max(p1, p2);
+                            label edgeHash = minP * mesh.nPoints() + maxP;
+                            
+                            if (!processedEdges.found(edgeHash))
                             {
-                                fileAvailable = true;
-                                break;
+                                processedEdges.insert(edgeHash);
+                                
+                                const point& pt1 = mesh.points()[p1];
+                                const point& pt2 = mesh.points()[p2];
+                                
+                                scalar d1 = (pt1 - slicePoint) & sliceNormal;
+                                scalar d2 = (pt2 - slicePoint) & sliceNormal;
+                                
+                                // Prüfe ob Kante die Slice schneidet (unterschiedliche Vorzeichen der Distanzen)
+                                if (d1 * d2 <= 0 && mag(d1 - d2) > tolerance)
+                                {
+                                    scalar t = d1 / (d1 - d2);
+                                    t = max(0.0, min(1.0, t));
+                                    point intersection = pt1 + t * (pt2 - pt1);
+                                    intersectionPoints.append(intersection);
+                                }
                             }
-                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                        }
-
-                        if (fileAvailable)
-                        {
-                            std::ifstream fin(filePath.c_str());
-                            std::string line;
-                            bool firstLine = true;
-                            while (std::getline(fin, line))
-                            {
-                                if (firstLine) { firstLine = false; continue; }
-                                merged << "\"" << line << "\"\n";
-                            }
-                            fin.close();
-                            std::remove(filePath.c_str());
-                        }
-                        else
-                        {
-                            Info << "Missing file from processor" << procNo << ": " << filePath << endl;
                         }
                     }
-
-                    merged.close();
-                    Info << "Appended data block for time " << roundedTime << " to " << mergedOutputPath << endl;
+                    
+                    // Berechne Fläche nur wenn mindestens 3 Punkte vorhanden
+                    if (intersectionPoints.size() >= 3)
+                    {
+                        // Berechne Zentroid
+                        vector centroid = vector::zero;
+                        forAll(intersectionPoints, pI)
+                        {
+                            centroid += intersectionPoints[pI];
+                        }
+                        centroid /= intersectionPoints.size();
+                        
+                        // Sortiere Punkte um den Zentroid für korrekte Triangulation
+                        // Projiziere auf Slice-Ebene und sortiere nach Winkel
+                        vector u = vector(1,0,0);
+                        if (mag(u & sliceNormal) > 0.9) u = vector(0,1,0);
+                        u = u - (u & sliceNormal) * sliceNormal;
+                        u /= mag(u);
+                        vector v = sliceNormal ^ u;
+                        
+                        // Sortiere Punkte nach Winkel
+                        for (label i = 0; i < intersectionPoints.size() - 1; i++)
+                        {
+                            for (label j = i + 1; j < intersectionPoints.size(); j++)
+                            {
+                                vector r1 = intersectionPoints[i] - centroid;
+                                vector r2 = intersectionPoints[j] - centroid;
+                                scalar angle1 = atan2(r1 & v, r1 & u);
+                                scalar angle2 = atan2(r2 & v, r2 & u);
+                                if (angle1 > angle2)
+                                {
+                                    point temp = intersectionPoints[i];
+                                    intersectionPoints[i] = intersectionPoints[j];
+                                    intersectionPoints[j] = temp;
+                                }
+                            }
+                        }
+                        
+                        // Berechne Fläche durch Triangulation vom Zentroid aus
+                        scalar totalArea = 0.0;
+                        for (label i = 0; i < intersectionPoints.size(); i++)
+                        {
+                            label nextI = (i + 1) % intersectionPoints.size();
+                            vector v1 = intersectionPoints[i] - centroid;
+                            vector v2 = intersectionPoints[nextI] - centroid;
+                            scalar triangleArea = 0.5 * mag(v1 ^ v2);
+                            totalArea += triangleArea;
+                        }
+                        
+                        // Debug-Output für erste paar Intersections
+                        if (intersections.size() < 5)
+                        {
+                            Info << "Cell " << cellI << ": " << intersectionPoints.size() 
+                                 << " intersection points, area = " << totalArea << " m²" << endl;
+                        }
+                        
+                        // Finde Nachbarzelle auf der anderen Seite der Slice
+                        label neighborCellId = -1;
+                        scalar minNeighborDist = GREAT;
+                        
+                        forAll(cellFaces, fI)
+                        {
+                            label faceI = cellFaces[fI];
+                            if (mesh.isInternalFace(faceI))
+                            {
+                                label ownCell = mesh.faceOwner()[faceI];
+                                label neiCell = mesh.faceNeighbour()[faceI];
+                                label otherCell = (ownCell == cellI) ? neiCell : ownCell;
+                                
+                                scalar otherCellDist = (mesh.C()[otherCell] - slicePoint) & sliceNormal;
+                                scalar currentCellDist = (mesh.C()[cellI] - slicePoint) & sliceNormal;
+                                
+                                // Nachbarzelle muss auf der anderen Seite der Slice liegen
+                                if ((otherCellDist * currentCellDist) < 0 && mag(otherCellDist) < minNeighborDist)
+                                {
+                                    minNeighborDist = mag(otherCellDist);
+                                    neighborCellId = otherCell;
+                                }
+                            }
+                        }
+                        
+                        // Berechne Distanz und Gewichtung
+                        scalar cellDistance = mag((mesh.C()[cellI] - slicePoint) & sliceNormal);
+                        scalar weight = 1.0;
+                        
+                        if (neighborCellId != -1)
+                        {
+                            scalar neighborDistance = mag((mesh.C()[neighborCellId] - slicePoint) & sliceNormal);
+                            scalar totalDistance = cellDistance + neighborDistance;
+                            if (totalDistance > tolerance)
+                            {
+                                weight = neighborDistance / totalDistance; // Inverse Distanz-Gewichtung
+                            }
+                        }
+                        
+                        // Speichere Intersection-Information
+                        SliceIntersection intersection;
+                        intersection.cellId = cellI;
+                        intersection.centroid = centroid;
+                        intersection.area = totalArea;
+                        intersection.normal = sliceNormal;
+                        intersection.neighborCellId = neighborCellId;
+                        intersection.distance = cellDistance;
+                        intersection.weight = weight;
+                        
+                        intersections.push_back(intersection);
+                    }
                 }
             }
-            else
+            
+            // Summiere Statistiken über alle Prozesse
+            scalar totalArea = 0.0;
+            scalar maxArea = 0.0;
+            scalar minArea = GREAT;
+            forAll(intersections, i)
             {
-                std::ifstream fin(procOutputPath.c_str());
-                std::ofstream merged(mergedOutputPath.c_str(), std::ios::app);
-                std::string line;
-                bool firstLine = true;
-
-                merged << Foam::name(roundedTime) << "\n";
-
-                while (std::getline(fin, line))
-                {
-                    if (firstLine) { firstLine = false; continue; }
-                    merged << "\"" << line << "\"\n";
-                }
-
-                fin.close();
-                merged.close();
-                std::remove(procOutputPath.c_str());
-                Info << "Appended data block for time " << roundedTime << " to " << mergedOutputPath << " (serial mode)" << endl;
+                totalArea += intersections[i].area;
+                maxArea = max(maxArea, intersections[i].area);
+                minArea = min(minArea, intersections[i].area);
             }
-
-            return true;
+            
+            reduce(totalArea, sumOp<scalar>());
+            reduce(maxArea, maxOp<scalar>());
+            reduce(minArea, minOp<scalar>());
+            label globalIntersections = returnReduce(intersections.size(), sumOp<label>());
+            
+            Info << "Found " << globalIntersections << " slice intersections globally" << endl;
+            Info << "Total slice area: " << totalArea << " m²" << endl;
+            Info << "Average area per intersection: " << (globalIntersections > 0 ? totalArea/globalIntersections : 0) << " m²" << endl;
+            Info << "Min/Max intersection area: " << minArea << " / " << maxArea << " m²" << endl;
+            
+            return intersections;
         };
 
-        auto extractEnergyLoss = [&](const word& fieldName, const vector& lower, const vector& upper, const scalar& roundedTime)
+
+        // Statische Variablen für einmalige Berechnung
+        static std::vector<SliceIntersection> staticSliceIntersections;
+        static bool intersectionsCalculated = false;
+
+        //--------------------------------------------------------
+        auto extractEnergyLoss = [&](const word& direction, const vector& lower, const vector& upper, const scalar& roundedTime)
         {
-            const volScalarField& T = mesh().lookupObject<volScalarField>(fieldName);
-            const surfaceScalarField& phi = mesh().lookupObject<surfaceScalarField>("phi");
-            const fvPatchList& patches = mesh().boundary();
-            const scalar cp = 1005.0;
-
-            // Step 1: Collect all relevant face data locally (refactored)
-            List<vector> localPts;
-            List<scalar> localPhiVals;
-            List<scalar> localTvals;
-
-            forAll(phi.boundaryField(), patchI)
+            // Definition der Slice-Ebene
+            vector slicePoint = vector::zero;
+            vector sliceNormal = vector::zero;
+            
+            if (direction == "x") 
             {
-                const Field<scalar>& phiP = phi.boundaryField()[patchI];
-                const Field<scalar>& Tp = T.boundaryField()[patchI];
-                const vectorField& Cf = patches[patchI].Cf();
-
-                forAll(phiP, faceI)
-                {
-                    const vector& pt = Cf[faceI];
-                    if ((pt.x() >= lower.x() && pt.x() <= upper.x()) &&
-                        (pt.y() >= lower.y() && pt.y() <= upper.y()) &&
-                        (pt.z() >= lower.z() && pt.z() <= upper.z()))
-                    {
-                        localPts.append(pt);
-                        localPhiVals.append(phiP[faceI]);
-                        localTvals.append(Tp[faceI]);
-                    }
-                }
+                slicePoint = vector(lower.x(), 0, 0);
+                sliceNormal = vector(1, 0, 0);
+            }
+            else if (direction == "y") 
+            {
+                slicePoint = vector(0, lower.y(), 0);
+                sliceNormal = vector(0, 1, 0);
+            }
+            else if (direction == "z") 
+            {
+                slicePoint = vector(0, 0, lower.z());
+                sliceNormal = vector(0, 0, 1);
+            }
+            
+            // Einmalige Berechnung der Slice-Intersektionen
+            if (!intersectionsCalculated)
+            {
+                staticSliceIntersections = calculateSliceIntersections(slicePoint, sliceNormal);
+                intersectionsCalculated = true;
+                Info << "Slice intersections calculated and stored for reuse" << endl;
             }
 
-            List<vector> allPts;
-            List<scalar> allPhiVals;
-            List<scalar> allTvals;
+            // Static variables für zeitgewichtete Akkumulation - persistieren zwischen Aufrufen
+            static scalar totalTimeSpan = 0.0;
+            static scalar totalinFlowMass = 0.0;
+            static scalar totaloutFlowMass = 0.0;
+            static scalar totalMassTransfer = 0.0;
+            static scalar totalinFlowVolume = 0.0;
+            static scalar totaloutFlowVolume = 0.0;
+            static scalar totalVolumeTransfer = 0.0;
+            static scalar totalinFlowEnergy = 0.0;
+            static scalar totaloutFlowEnergy = 0.0;           
+            static scalar totalEnergyTransfer = 0.0;
+            static scalar totalWeightedCells = 0.0;
+            static int iterationCount = 0;
+            static bool buffersInitialized = false;
+            static scalar intervalStartTime = 0.0;
+            
+            if (!buffersInitialized) { // Initialisiere Akkumulatoren beim ersten Aufruf
+                totalTimeSpan = 0.0;
+                totalMassTransfer = 0.0;
+                totalVolumeTransfer = 0.0;
+                totalEnergyTransfer = 0.0;
+                totalWeightedCells = 0.0;
+                iterationCount = 0;
+                intervalStartTime = roundedTime;
+                buffersInitialized = true;
+            }
 
-            if (Pstream::master())
+            const fvMesh& mesh = this->mesh(); // Referenz auf das Mesh
+            const volScalarField& T = mesh.lookupObject<volScalarField>("T"); // Temperaturfeld
+            const volVectorField& U = mesh.lookupObject<volVectorField>("U"); // Geschwindigkeitsfeld
+            const surfaceScalarField& phi = mesh.lookupObject<surfaceScalarField>("phi"); // Volumenstromfeld an Flächen
+            const scalar cp = 1005.0; // spezifische Wärmekapazität von Luft bei konstantem Druck in J/(kg*K)
+            const volScalarField& rho = mesh.lookupObject<volScalarField>("rho"); // Dichtefeld
+
+            label dirIndex = -1;
+            dirIndex = (direction == "x") ? 0 : (direction == "y") ? 1 : (direction == "z") ? 2 : -1; // dirIndex direction slice
+
+            bool isParallel = (Pstream::parRun() && Pstream::nProcs() > 1); // Prüfe ob parallel gerechnet wird
+            fileName mergedDir = mesh.time().globalPath() / "postProcess" / "EnergyLoss";
+            mkDir(mergedDir); 
+            fileName mergedOutputPath = mergedDir / "Data"; 
+            if (roundedTime == 0 && isFile(mergedOutputPath)){std::remove(mergedOutputPath.c_str());} // Lösche existierende Datei bei t=0
+
+            scalar inFlowMass = 0.0; // Einströmende Masse (kg/s)
+            scalar outFlowMass = 0.0; // Ausströmende Masse (kg/s)
+            scalar inFlowVolume = 0.0; // Einströmendes Volumen (m³/s)
+            scalar outFlowVolume = 0.0; // Ausströmendes Volumen (m³/s)
+            scalar inFlowPower = 0.0; // Einströmende Leistung (W)
+            scalar outFlowPower = 0.0; // Ausströmende Leistung (W)
+            scalar inFlowEnergy = 0.0; // Einströmende Energie (J)
+            scalar outFlowEnergy = 0.0; // Ausströmende Energie (J)
+            scalar weightedCellCount = 0.0; // Gewichtete Anzahl der Zellen die die Slice schneiden
+            
+            scalar totalSliceArea = 0.0; // Summiere alle Schnittflächen
+            forAll(staticSliceIntersections, intI)
             {
-                allPts = localPts;
-                allPhiVals = localPhiVals;
-                allTvals = localTvals;
-
-                for (int procI = 1; procI < Pstream::nProcs(); ++procI)
+                const SliceIntersection& intersection = staticSliceIntersections[intI];
+                totalSliceArea += intersection.area; // Addiere Fläche zur Gesamtsumme
+                scalar sliceTemperature = T[intersection.cellId];
+                vector sliceVelocity = U[intersection.cellId];
+                scalar sliceRho = rho[intersection.cellId];
+                
+                
+                // INTERPOLATION DEAKTIVIERT FÜR TEST
+                /*
+                // Gewichtete Interpolation falls Nachbarzelle vorhanden
+                if (intersection.neighborCellId != -1)
                 {
-                    IPstream fromProc(Pstream::commsTypes::blocking, procI);
-                    label n;
-                    fromProc >> n;
+                    scalar neighborTemp = T[intersection.neighborCellId];
+                    vector neighborVel = U[intersection.neighborCellId];
+                    scalar neighborRho = rho[intersection.neighborCellId];
+                    
+                    sliceTemperature = intersection.weight * sliceTemperature + (1.0 - intersection.weight) * neighborTemp;
+                    sliceVelocity = intersection.weight * sliceVelocity + (1.0 - intersection.weight) * neighborVel;
+                    sliceRho = intersection.weight * sliceRho + (1.0 - intersection.weight) * neighborRho;
+                }
+                */
+                
+                // Berechne Flüsse an der Slice-Fläche
+                scalar normalVel = sliceVelocity & sliceNormal;
+                scalar effectiveArea = intersection.area;
+                
+                scalar finalMassFlow = sliceRho * normalVel * effectiveArea; // Massenstrom durch die Schnittfläche
+                scalar finalVolumeFlow = normalVel * effectiveArea; // Volumenstrom direkt berechnet 
+                scalar powerFlow = finalMassFlow * cp * sliceTemperature; // Leistungsfluss (W)
+                scalar energyFlow = powerFlow * mesh.time().deltaTValue(); // Energiefluss pro Zeitschritt (J)
 
-                    for (label i = 0; i < n; ++i)
-                    {
-                        vector pt;
-                        scalar phiVal, Tval;
-                        fromProc >> pt >> phiVal >> Tval;
-                        allPts.append(pt);
-                        allPhiVals.append(phiVal);
-                        allTvals.append(Tval);
-                    }
+                // Debug-Output für erste 5 Intersections bei der ersten Iteration
+                if (intI < 5 && iterationCount == 0)
+                {
+                    Info << "DEBUG Cell " << intersection.cellId << ": |U|=" << mag(sliceVelocity) 
+                         << " m/s, U.n=" << normalVel << " m/s, rho=" << sliceRho 
+                         << " kg/m³, area=" << effectiveArea << " m², massFlow=" << finalMassFlow 
+                         << " kg/s, volFlow=" << finalVolumeFlow << " m³/s" << endl;
+                }
+
+                weightedCellCount += 1.0;
+                
+                if (finalMassFlow > SMALL) // Ausströmend
+                {
+                    outFlowMass += finalMassFlow; // Addiere zu ausströmender Masse
+                    outFlowVolume += finalVolumeFlow; // Addiere zu ausströmendem Volumen
+                    outFlowPower += powerFlow; // Addiere zu ausströmender Leistung
+                    outFlowEnergy += energyFlow; // Addiere zu ausströmender Energie
+                }
+                else if (finalMassFlow < -SMALL) // Einströmend
+                {
+                    inFlowMass += mag(finalMassFlow); // Addiere Betrag zu einströmender Masse
+                    inFlowVolume += mag(finalVolumeFlow); // Addiere Betrag zu einströmendem Volumen
+                    inFlowPower += mag(powerFlow); // Addiere Betrag zu einströmender Leistung
+                    inFlowEnergy += mag(energyFlow); // Addiere Betrag zu einströmender Energie
                 }
             }
-            else
-            {
-                OPstream toMaster(Pstream::commsTypes::blocking, 0);
-                label n = localPts.size();
-                toMaster << n;
-                forAll(localPts, i)
-                {
-                    toMaster << localPts[i] << localPhiVals[i] << localTvals[i];
-                }
+            
+            // Summiere Gesamtfläche über alle Prozesse
+            reduce(totalSliceArea, sumOp<scalar>());
+            reduce(inFlowMass, sumOp<scalar>());
+            reduce(outFlowMass, sumOp<scalar>());
+            reduce(inFlowVolume, sumOp<scalar>());
+            reduce(outFlowVolume, sumOp<scalar>());
+            reduce(inFlowPower, sumOp<scalar>());
+            reduce(outFlowPower, sumOp<scalar>());
+            reduce(inFlowEnergy, sumOp<scalar>());
+            reduce(outFlowEnergy, sumOp<scalar>());
+            reduce(weightedCellCount, sumOp<scalar>());
+
+
+            scalar massDifference = inFlowMass - outFlowMass;  
+            scalar volumeDifference = inFlowVolume - outFlowVolume; 
+            scalar netPowerLoss = inFlowPower - outFlowPower;
+            scalar netEnergyLoss = inFlowEnergy - outFlowEnergy;
+
+
+
+            scalar deltaT = mesh.time().deltaTValue();
+            
+            // Speichere Startzeit des Intervalls bei der ersten Iteration
+            if (iterationCount == 0) {
+                intervalStartTime = roundedTime;
             }
-            // Step 2: On master, process and output
-            if (Pstream::master())
-            {
-                scalar mIn = 0.0, mOut = 0.0;
-                scalar eIn = 0.0, eOut = 0.0;
-                label debugFaceCount = 0;
+            
+            totalTimeSpan += deltaT;
+            totalinFlowMass += inFlowMass * deltaT;          // kg (akkumuliert)
+            totaloutFlowMass += outFlowMass * deltaT;        // kg (akkumul
+            totalMassTransfer += massDifference * deltaT;        // kg (akkumuliert)
+            totalinFlowVolume += inFlowVolume * deltaT;      // m³ (akkumuliert)
+            totaloutFlowVolume += outFlowVolume * deltaT;    // m³ (akkumuliert)
+            totalVolumeTransfer += volumeDifference * deltaT;    // m³ (akkumuliert)
+            totalinFlowEnergy += inFlowEnergy;                // J (bereits mit deltaT multipliziert)
+            totaloutFlowEnergy += outFlowEnergy;              // J (bereits mit deltaT
+            totalEnergyTransfer += netEnergyLoss;                // J (bereits mit deltaT multipliziert)
+            totalWeightedCells += weightedCellCount * deltaT;    // gewichtete Zellen × Zeit
+            iterationCount++;
 
-                forAll(allPts, i)
-                {
-                    const vector& pt = allPts[i];
-                    const scalar phiVal = allPhiVals[i];
-                    const scalar temp = allTvals[i];
-                    if (mag(phiVal) != 0)
-                    {
-                        Info << "  [Face] pt: " << pt << ", phi: " << phiVal << ", T: " << temp
-                             << ", mdot: " << mag(phiVal) << ", energy: " << mag(phiVal)*cp*temp << endl;
-                        ++debugFaceCount;
-                    }
+            if (iterationCount >= 1) {
+                if (Pstream::master()) {
+                    scalar avginFlowMass = (totalTimeSpan > SMALL) ? totalinFlowMass / totalTimeSpan : 0.0;          // kg/s
+                    scalar avgoutFlowMass = (totalTimeSpan > SMALL) ? totaloutFlowMass / totalTimeSpan : 0.0;        // kg/s
+                    scalar avgMassRate = (totalTimeSpan > SMALL) ? totalMassTransfer / totalTimeSpan : 0.0;      // kg/s
+                    scalar avginFlowVolume = (totalTimeSpan > SMALL) ? totalinFlowVolume / totalTimeSpan : 0.0;      // m³/s
+                    scalar avgoutFlowVolume = (totalTimeSpan > SMALL) ? totaloutFlowVolume / totalTimeSpan : 0.0;    // m³/s
+                    scalar avgVolumeRate = (totalTimeSpan > SMALL) ? totalVolumeTransfer / totalTimeSpan : 0.0;  // m³/s
+                    scalar avginFlowPower = (totalTimeSpan > SMALL) ? totalinFlowEnergy / totalTimeSpan : 0.0;      // W
+                    scalar avgoutFlowPower = (totalTimeSpan > SMALL) ? totaloutFlowEnergy / totalTimeSpan : 0.0;    // W
+                    scalar avgPowerRate = (totalTimeSpan > SMALL) ? totalEnergyTransfer / totalTimeSpan : 0.0;   // W
+                    scalar avgWeightedCells = (totalTimeSpan > SMALL) ? totalWeightedCells / totalTimeSpan : 0.0; // gewichtete Zellen
+                    scalar intervalMidTime = intervalStartTime + (totalTimeSpan / 2.0); // Mittlere Zeit des Intervalls
 
-                    if (phiVal < 0)
-                    {
-                        scalar mdotIn = mag(phiVal);
-                        mIn += mdotIn;
-                        eIn += mdotIn * cp * temp;
-                    }
-                    else if (phiVal > 0)
-                    {
-                        scalar mdotOut = phiVal;
-                        mOut += mdotOut;
-                        eOut += mdotOut * cp * temp;
-                    }
+
+                    scalar avgMass = 0.5 * (avginFlowMass + avgoutFlowMass);
+                    scalar avgVolume = 0.5 * (avginFlowVolume + avgoutFlowVolume);
+                    scalar avgPower = 0.5 * (avginFlowPower + avgoutFlowPower);
+                    scalar avgEnergy = 0.5 * (totalinFlowEnergy + totaloutFlowEnergy);
+
+                    scalar massImbalancePercent = (avgMass > SMALL) ? 100.0 * avgMassRate / avgMass : 0.0;
+                    scalar volumeImbalancePercent = (avgVolume > SMALL) ? 100.0 * avgVolumeRate / avgVolume : 0.0;
+                    scalar netPowerLossPercent = (avgPower > SMALL) ? 100.0 * avgPowerRate / avgPower : 0.0;
+                    scalar netEnergyLossPercent = (avgEnergy > SMALL) ? 100.0 * totalEnergyTransfer / avgEnergy : 0.0;
+                    
+                    std::ofstream merged(mergedOutputPath.c_str(), std::ios::app);
+                    merged << "Timestep " << Foam::name(intervalMidTime) 
+                           << " | Total Time Span " << totalTimeSpan 
+                           << " | Cells " << static_cast<int>(avgWeightedCells) << "\n"
+                           << "Mass flows:\n"
+                           << "  Inflow mass:     " << avginFlowMass << " kg/s\n"
+                           << "  Outflow mass:    " << avgoutFlowMass << " kg/s\n" 
+                           << "  Mass imbalance:  " << avgMassRate << " kg/s (" << massImbalancePercent << " %)\n"
+                           << "Volume flows:\n"
+                           << "  Inflow volume:   " << avginFlowVolume << " m³/s \n"
+                           << "  Outflow volume:  " << avgoutFlowVolume << " m³/s \n" 
+                           << "  Volume diff:     " << avgVolumeRate << " m³/s (" << volumeImbalancePercent << " %)\n"
+                           << "Power flows:\n"
+                           << "  Inflow power:    " << avginFlowPower << " W\n"
+                           << "  Outflow power:   " << avgoutFlowPower << " W\n"
+                           << "  Net power loss:  " << avgPowerRate << " W (" << netPowerLossPercent << " %)\n"
+                           << "Energy flows:\n"
+                           << "  Inflow energy:   " << totalinFlowEnergy << " J \n"
+                           << "  Outflow energy:  " << totaloutFlowEnergy << " J \n"
+                           << "  Net energy loss: " << totalEnergyTransfer << " J (" << netEnergyLossPercent << " %)\n"
+                           << "Iterations:       " << iterationCount << "\n"
+                           << "Area:             " << totalSliceArea << " m²\n"
+                           << "----------------------------------------\n";
+                    merged.close();
+                    Info << "Written time-averaged EnergyLoss data (" << iterationCount << " iterations, " 
+                         << totalTimeSpan << " s) from t=" << intervalStartTime << " to t=" << roundedTime 
+                         << " to " << mergedOutputPath << endl;
                 }
-
-                Info << "Total contributing faces in volume: " << debugFaceCount << endl;
-
-                scalar Tin = (mIn > SMALL) ? eIn / (mIn * cp) : 0.0;
-                scalar Tout = (mOut > SMALL) ? eOut / (mOut * cp) : 0.0;
-                scalar deltaT = Tin - Tout;
-                scalar Qdot = mOut * cp * deltaT;
-
-                fileName mergedDir = mesh().time().globalPath() / "postProcess" / "EnergyLoss";
-                mkDir(mergedDir);
-                fileName mergedOutputPath = mergedDir / "Data";
-                if (roundedTime == 0 && isFile(mergedOutputPath))
-                {
-                    std::remove(mergedOutputPath.c_str());
-                }
-
-                std::ofstream merged(mergedOutputPath.c_str(), std::ios::app);
-                merged << "--- Energy Loss (roundedTime = " << roundedTime << ") ---\n";
-                merged << "T_in    = " << Tin << " K\n";
-                merged << "T_out   = " << Tout << " K\n";
-                merged << "Delta T = " << deltaT << " K\n";
-                merged << "Qdot    = " << Qdot << " W\n";
-                merged << "----------------------------------------------\n";
-                merged.close();
+                
+                // Reset Akkumulatoren für nächstes Intervall
+                totalTimeSpan = 0.0;
+                totalMassTransfer = 0.0;
+                totalVolumeTransfer = 0.0;
+                totalEnergyTransfer = 0.0;
+                totalWeightedCells = 0.0;
+                iterationCount = 0;
+                intervalStartTime = roundedTime; // Neue Startzeit für nächstes Intervall
             }
-        };
+        };  
 
 
-
+        //--------------------------------------------------------
         static scalar lastWrittenTime = -1;
-        scalar writeInterval = 1; 
+        scalar writeInterval = 0.1; 
         scalar time = mesh().time().value();
         int precision = std::max(0, int(-std::floor(std::log10(writeInterval) + SMALL)));
         scalar factor = std::pow(10.0, precision);
@@ -478,16 +685,15 @@ DataExtract
             lastWrittenTime = roundedTime;
             Info << "Writing U, CO2 and T data for time " << roundedTime << endl;
             //extractFieldData("U", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
-            extractFieldData("CO2", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
-            extractFieldData("T", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
+            //extractFieldData("CO2", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
+            //extractFieldData("T", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             //extractFieldData("alphat", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             //extractFieldData("epsilon", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
-            extractFieldData("k", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
+            //extractFieldData("k", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             //extractFieldData("nut", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             //extractFieldData("p", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
-
-
-            extractEnergyLoss("T", vector(0.531, -0.10, 0.867), vector(1.571, 0, 2.157), roundedTime);
+            //extractEnergyLoss("y", vector(0.450, -0.15, 0.786), vector(1.652, 0, 2.238), roundedTime);
         }
+        extractEnergyLoss("y", vector(0.531, -0.06, 0.867), vector(1.571, -0.06, 2.157), time);
     #};
 }
