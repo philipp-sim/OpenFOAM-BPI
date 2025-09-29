@@ -202,7 +202,6 @@ DataExtract
             scalar weight;                   // Gewichtung für Interpolation
         };
 
-        // Auto-Funktion zur Berechnung der Slice-Intersektionen (nur einmal aufgerufen)
         auto calculateSliceIntersections = [&](const vector& slicePoint, const vector& sliceNormal) -> std::vector<SliceIntersection>
         {
             std::vector<SliceIntersection> intersections;
@@ -330,16 +329,8 @@ DataExtract
                             totalArea += triangleArea;
                         }
                         
-                        // Debug-Output für erste paar Intersections
-                        if (intersections.size() < 5)
-                        {
-                            Info << "Cell " << cellI << ": " << intersectionPoints.size() 
-                                 << " intersection points, area = " << totalArea << " m²" << endl;
-                        }
-                        
-                        // Finde Nachbarzelle auf der anderen Seite der Slice
                         label neighborCellId = -1;
-                        scalar minNeighborDist = GREAT;
+                        scalar minFaceToSliceDist = GREAT;
                         
                         forAll(cellFaces, fI)
                         {
@@ -354,10 +345,18 @@ DataExtract
                                 scalar currentCellDist = (mesh.C()[cellI] - slicePoint) & sliceNormal;
                                 
                                 // Nachbarzelle muss auf der anderen Seite der Slice liegen
-                                if ((otherCellDist * currentCellDist) < 0 && mag(otherCellDist) < minNeighborDist)
+                                if ((otherCellDist * currentCellDist) < 0)
                                 {
-                                    minNeighborDist = mag(otherCellDist);
-                                    neighborCellId = otherCell;
+                                    // Berechne Distanz des Face-Zentrums zur Slice
+                                    vector faceCentre = mesh.Cf()[faceI];
+                                    scalar faceToSliceDist = mag((faceCentre - slicePoint) & sliceNormal);
+                                    
+                                    // Wähle die Face, die am nächsten zur Slice liegt
+                                    if (faceToSliceDist < minFaceToSliceDist)
+                                    {
+                                        minFaceToSliceDist = faceToSliceDist;
+                                        neighborCellId = otherCell;
+                                    }
                                 }
                             }
                         }
@@ -512,41 +511,43 @@ DataExtract
                 scalar sliceTemperature = T[intersection.cellId];
                 vector sliceVelocity = U[intersection.cellId];
                 scalar sliceRho = rho[intersection.cellId];
-                
-                
-                // INTERPOLATION DEAKTIVIERT FÜR TEST
-                /*
-                // Gewichtete Interpolation falls Nachbarzelle vorhanden
+
                 if (intersection.neighborCellId != -1)
                 {
                     scalar neighborTemp = T[intersection.neighborCellId];
                     vector neighborVel = U[intersection.neighborCellId];
                     scalar neighborRho = rho[intersection.neighborCellId];
                     
-                    sliceTemperature = intersection.weight * sliceTemperature + (1.0 - intersection.weight) * neighborTemp;
-                    sliceVelocity = intersection.weight * sliceVelocity + (1.0 - intersection.weight) * neighborVel;
-                    sliceRho = intersection.weight * sliceRho + (1.0 - intersection.weight) * neighborRho;
+                    // Hole Zellvolumen für bessere Gewichtung
+                    scalar cellVolume = mesh.V()[intersection.cellId];
+                    scalar neighborVolume = mesh.V()[intersection.neighborCellId];
+                    
+                    // Berechne volumen-gewichtete Distanz-basierte Gewichtung
+                    scalar cellDistance = intersection.distance;
+                    scalar neighborDistance = mag((mesh.C()[intersection.neighborCellId] - slicePoint) & sliceNormal);
+                    
+                    // Gewichtung: (Volumen / Distanz) normalisiert
+                    scalar cellWeight = cellVolume / max(cellDistance, 1e-10);
+                    scalar neighborWeight = neighborVolume / max(neighborDistance, 1e-10);
+                    scalar totalWeight = cellWeight + neighborWeight;
+                    
+                    if (totalWeight > 1e-10)
+                    {
+                        cellWeight /= totalWeight;
+                        neighborWeight /= totalWeight;
+                        sliceTemperature = cellWeight * sliceTemperature + neighborWeight * neighborTemp;
+                        sliceVelocity = cellWeight * sliceVelocity + neighborWeight * neighborVel;
+                        sliceRho = cellWeight * sliceRho + neighborWeight * neighborRho;
+                    }
                 }
-                */
                 
                 // Berechne Flüsse an der Slice-Fläche
                 scalar normalVel = sliceVelocity & sliceNormal;
                 scalar effectiveArea = intersection.area;
-                
                 scalar finalMassFlow = sliceRho * normalVel * effectiveArea; // Massenstrom durch die Schnittfläche
                 scalar finalVolumeFlow = normalVel * effectiveArea; // Volumenstrom direkt berechnet 
                 scalar powerFlow = finalMassFlow * cp * sliceTemperature; // Leistungsfluss (W)
                 scalar energyFlow = powerFlow * mesh.time().deltaTValue(); // Energiefluss pro Zeitschritt (J)
-
-                // Debug-Output für erste 5 Intersections bei der ersten Iteration
-                if (intI < 5 && iterationCount == 0)
-                {
-                    Info << "DEBUG Cell " << intersection.cellId << ": |U|=" << mag(sliceVelocity) 
-                         << " m/s, U.n=" << normalVel << " m/s, rho=" << sliceRho 
-                         << " kg/m³, area=" << effectiveArea << " m², massFlow=" << finalMassFlow 
-                         << " kg/s, volFlow=" << finalVolumeFlow << " m³/s" << endl;
-                }
-
                 weightedCellCount += 1.0;
                 
                 if (finalMassFlow > SMALL) // Ausströmend
