@@ -191,6 +191,158 @@ DataExtract
     codeExecute
     #{
 
+        auto extractFieldData = [&](const word& fieldName, const vector& lower, const vector& upper, const scalar& roundedTime)
+        {
+            const fvMesh& mesh = this->mesh();
+            const pointField& centres = mesh.C();
+            bool isParallel = (Pstream::parRun() && Pstream::nProcs() > 1);
+
+            fileName mergedDir = mesh.time().globalPath() / "postProcess" / fieldName;
+            mkDir(mergedDir);
+            fileName mergedOutputPath = mergedDir / "Data";
+            if (roundedTime == 0 && isFile(mergedOutputPath))
+            {
+                std::remove(mergedOutputPath.c_str());
+            }
+
+            fileName procOutputPath;
+            if (isParallel)
+            {
+                procOutputPath = mesh.time().path() / (fieldName + "_" + Foam::name(roundedTime) + "_proc" + Foam::name(Pstream::myProcNo()));
+            }
+            else
+            {
+                procOutputPath = mergedDir / Foam::name(roundedTime);
+            }
+
+            if (isFile(procOutputPath))
+            {
+                std::remove(procOutputPath.c_str());
+            }
+
+            std::ostringstream buffer;
+
+            if (mesh.foundObject<volScalarField>(fieldName))
+            {
+                const volScalarField& field = mesh.lookupObject<volScalarField>(fieldName);
+                buffer << "x,y,z," << fieldName << "\n";
+
+                forAll(field, cellI)
+                {
+                    const point& p = centres[cellI];
+                    if ((p.x() >= lower.x() && p.x() <= upper.x()) &&
+                        (p.y() >= lower.y() && p.y() <= upper.y()) &&
+                        (p.z() >= lower.z() && p.z() <= upper.z()))
+                    {
+                        scalar val = field[cellI];
+                        buffer << p.x() << "," << p.y() << "," << p.z() << "," << val << "\n";
+                    }
+                }
+            }
+            else if (mesh.foundObject<volVectorField>(fieldName))
+            {
+                const volVectorField& field = mesh.lookupObject<volVectorField>(fieldName);
+                buffer << "x,y,z," << fieldName << "_x," << fieldName << "_y," << fieldName << "_z," << fieldName << "_mag\n";
+
+                forAll(field, cellI)
+                {
+                    const point& p = centres[cellI];
+                    if ((p.x() >= lower.x() && p.x() <= upper.x()) &&
+                        (p.y() >= lower.y() && p.y() <= upper.y()) &&
+                        (p.z() >= lower.z() && p.z() <= upper.z()))
+                    {
+                        const vector& val = field[cellI];
+                        buffer << p.x() << "," << p.y() << "," << p.z() << ","
+                               << val.x() << "," << val.y() << "," << val.z() << ","
+                               << mag(val) << "\n";
+                    }
+                }
+            }
+            else
+            {
+                Info << "Field " << fieldName << " not found or unsupported type." << endl;
+                return true;
+            }
+
+            std::ofstream output(procOutputPath.c_str());
+            output << buffer.str();
+            output.close();
+
+            Info << fieldName << " values written to " << procOutputPath << endl;
+
+            if (isParallel)
+            {
+                scalar dummy = 0;
+                Pstream::scatter(dummy);
+
+                if (Pstream::myProcNo() == 0)
+                {
+                    std::ofstream merged(mergedOutputPath.c_str(), std::ios::app);
+                    merged << "Timestep" << Foam::name(roundedTime) << "\n";
+
+                    for (int procNo = 0; procNo < Pstream::nProcs(); ++procNo)
+                    {
+                        fileName procDir = mesh.time().globalPath() / ("processor" + Foam::name(procNo));
+                        fileName filePath = procDir / (fieldName + "_" + Foam::name(roundedTime) + "_proc" + Foam::name(procNo));
+                        const int maxWaitMs = 1000;
+                        bool fileAvailable = false;
+                        for (int waitMs = 0; waitMs < maxWaitMs; ++waitMs)
+                        {
+                            if (isFile(filePath))
+                            {
+                                fileAvailable = true;
+                                break;
+                            }
+                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                        }
+
+                        if (fileAvailable)
+                        {
+                            std::ifstream fin(filePath.c_str());
+                            std::string line;
+                            bool firstLine = true;
+                            while (std::getline(fin, line))
+                            {
+                                if (firstLine) { firstLine = false; continue; }
+                                merged << "\"" << line << "\"\n";
+                            }
+                            fin.close();
+                            std::remove(filePath.c_str());
+                        }
+                        else
+                        {
+                            Info << "Missing file from processor" << procNo << ": " << filePath << endl;
+                        }
+                    }
+
+                    merged.close();
+                    Info << "Appended data block for time " << roundedTime << " to " << mergedOutputPath << endl;
+                }
+            }
+            else
+            {
+                std::ifstream fin(procOutputPath.c_str());
+                std::ofstream merged(mergedOutputPath.c_str(), std::ios::app);
+                std::string line;
+                bool firstLine = true;
+
+                merged << Foam::name(roundedTime) << "\n";
+
+                while (std::getline(fin, line))
+                {
+                    if (firstLine) { firstLine = false; continue; }
+                    merged << "\"" << line << "\"\n";
+                }
+
+                fin.close();
+                merged.close();
+                std::remove(procOutputPath.c_str());
+                Info << "Appended data block for time " << roundedTime << " to " << mergedOutputPath << " (serial mode)" << endl;
+            }
+
+            return true;
+        };
+
         struct SliceIntersection
         {
             label cellId;                    // ID der geschnittenen Zelle
