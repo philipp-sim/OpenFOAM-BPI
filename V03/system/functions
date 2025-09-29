@@ -577,13 +577,10 @@ DataExtract
             reduce(outFlowEnergy, sumOp<scalar>());
             reduce(weightedCellCount, sumOp<scalar>());
 
-
             scalar massDifference = inFlowMass - outFlowMass;  
             scalar volumeDifference = inFlowVolume - outFlowVolume; 
             scalar netPowerLoss = inFlowPower - outFlowPower;
             scalar netEnergyLoss = inFlowEnergy - outFlowEnergy;
-
-
 
             scalar deltaT = mesh.time().deltaTValue();
             
@@ -661,8 +658,14 @@ DataExtract
                 
                 // Reset Akkumulatoren für nächstes Intervall
                 totalTimeSpan = 0.0;
+                totalinFlowMass = 0.0;
+                totaloutFlowMass = 0.0;
                 totalMassTransfer = 0.0;
+                totalinFlowVolume = 0.0;
+                totaloutFlowVolume = 0.0;
                 totalVolumeTransfer = 0.0;
+                totalinFlowEnergy = 0.0;
+                totaloutFlowEnergy = 0.0;
                 totalEnergyTransfer = 0.0;
                 totalWeightedCells = 0.0;
                 iterationCount = 0;
