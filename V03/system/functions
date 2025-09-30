@@ -343,6 +343,8 @@ DataExtract
             return true;
         };
 
+        //--------------------------------------------------------
+
         struct SliceIntersection
         {
             label cellId;                    // ID der geschnittenen Zelle
@@ -351,7 +353,8 @@ DataExtract
             vector normal;                   // Normale der Schnittfläche
             label neighborCellId;            // ID der Nachbarzelle auf der anderen Seite
             scalar distance;                 // Abstand vom Zellzentrum zur Slice
-            scalar weight;                   // Gewichtung für Interpolation
+            scalar ownerWeight;              // Gewichtung für Owner-Zelle
+            scalar neighborWeight;           // Gewichtung für Neighbor-Zelle
         };
 
         auto calculateSliceIntersections = [&](const vector& slicePoint, const vector& sliceNormal) -> std::vector<SliceIntersection>
@@ -513,9 +516,10 @@ DataExtract
                             }
                         }
                         
-                        // Berechne Distanz und Gewichtung
+                        // Berechne Distanz und Gewichtungen für Interpolation
                         scalar cellDistance = mag((mesh.C()[cellI] - slicePoint) & sliceNormal);
-                        scalar weight = 1.0;
+                        scalar ownerWeight = 1.0;
+                        scalar neighborWeight = 0.0;
                         
                         if (neighborCellId != -1)
                         {
@@ -523,7 +527,9 @@ DataExtract
                             scalar totalDistance = cellDistance + neighborDistance;
                             if (totalDistance > tolerance)
                             {
-                                weight = neighborDistance / totalDistance; // Inverse Distanz-Gewichtung
+                                // Distanz-basierte Gewichtung: Je näher zur Slice, desto höher das Gewicht
+                                ownerWeight = neighborDistance / totalDistance;
+                                neighborWeight = cellDistance / totalDistance;
                             }
                         }
                         
@@ -535,7 +541,8 @@ DataExtract
                         intersection.normal = sliceNormal;
                         intersection.neighborCellId = neighborCellId;
                         intersection.distance = cellDistance;
-                        intersection.weight = weight;
+                        intersection.ownerWeight = ownerWeight;
+                        intersection.neighborWeight = neighborWeight;
                         
                         intersections.push_back(intersection);
                     }
@@ -578,21 +585,9 @@ DataExtract
             vector slicePoint = vector::zero;
             vector sliceNormal = vector::zero;
             
-            if (direction == "x") 
-            {
-                slicePoint = vector(lower.x(), 0, 0);
-                sliceNormal = vector(1, 0, 0);
-            }
-            else if (direction == "y") 
-            {
-                slicePoint = vector(0, lower.y(), 0);
-                sliceNormal = vector(0, 1, 0);
-            }
-            else if (direction == "z") 
-            {
-                slicePoint = vector(0, 0, lower.z());
-                sliceNormal = vector(0, 0, 1);
-            }
+            if (direction == "x") { slicePoint = vector(lower.x(), 0, 0); sliceNormal = vector(1, 0, 0); }
+            else if (direction == "y") { slicePoint = vector(0, lower.y(), 0); sliceNormal = vector(0, 1, 0); }
+            else if (direction == "z") { slicePoint = vector(0, 0, lower.z()); sliceNormal = vector(0, 0, 1); }
             
 
             if (!intersectionsCalculated)
@@ -639,7 +634,6 @@ DataExtract
             label dirIndex = -1;
             dirIndex = (direction == "x") ? 0 : (direction == "y") ? 1 : (direction == "z") ? 2 : -1; // dirIndex direction slice
 
-            bool isParallel = (Pstream::parRun() && Pstream::nProcs() > 1); // Prüfe ob parallel gerechnet wird
             fileName mergedDir = mesh.time().globalPath() / "postProcess" / "EnergyLoss";
             mkDir(mergedDir); 
             fileName mergedOutputPath = mergedDir / "Data"; 
@@ -670,19 +664,14 @@ DataExtract
                     vector neighborVel = U[intersection.neighborCellId];
                     scalar neighborRho = rho[intersection.neighborCellId];
                     
-                    // Lineare Interpolation zwischen Owner und Neighbor Zellzentren
-                    scalar ownerDistance = intersection.distance;  // Distanz Owner-Zellzentrum zur Slice
-                    scalar neighborDistance = mag((mesh.C()[intersection.neighborCellId] - slicePoint) & sliceNormal);
-                    scalar totalDistance = ownerDistance + neighborDistance;  // Gesamtdistanz Owner ↔ Neighbor
+                    // Verwende vorberechnete Gewichtungen aus calculateSliceIntersections
+                    scalar ownerWeight = intersection.ownerWeight;
+                    scalar neighborWeight = intersection.neighborWeight;
                     
-                    // Alpha: relativer Anteil der Distanz vom Owner zur Slice
-                    scalar alpha = ownerDistance / max(totalDistance, 1e-10);
-                    
-                    // Lineare Interpolation: value = (1-alpha)*owner + alpha*neighbor
-                    // alpha=0 → nur Owner, alpha=1 → nur Neighbor
-                    sliceTemperature = (1.0 - alpha) * sliceTemperature + alpha * neighborTemp;
-                    sliceVelocity = (1.0 - alpha) * sliceVelocity + alpha * neighborVel;
-                    sliceRho = (1.0 - alpha) * sliceRho + alpha * neighborRho;
+                    // Lineare Interpolation mit vorberechneten Gewichtungen
+                    sliceTemperature = ownerWeight * sliceTemperature + neighborWeight * neighborTemp;
+                    sliceVelocity = ownerWeight * sliceVelocity + neighborWeight * neighborVel;
+                    sliceRho = ownerWeight * sliceRho + neighborWeight * neighborRho;
                 }
                 
                 // Berechne Flüsse an der Slice-Fläche
