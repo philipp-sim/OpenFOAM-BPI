@@ -367,7 +367,7 @@ class LiveMassImbalanceMonitor:
             <div class="metric-box metric-cumulative">
                 <div class="metric-current" id="cumulative-energy-loss">--</div>
                 <div class="metric-mean" id="mean-cumulative-energy-loss">Ø --</div>
-                <div class="metric-label">Kumulierter Energy Loss (J)</div>
+                <div class="metric-label">Kumulierter Energy Loss (Wh)</div>
             </div>
         </div>
         
@@ -487,8 +487,8 @@ class LiveMassImbalanceMonitor:
                         document.getElementById('current-energy-loss').textContent = currentData.energy_loss.toFixed(4);
                         document.getElementById('mean-energy-loss').textContent = 'Ø ' + meanEnergyLoss.toFixed(4);
                         
-                        document.getElementById('cumulative-energy-loss').textContent = currentData.cumulative_energy_loss.toFixed(2);
-                        document.getElementById('mean-cumulative-energy-loss').textContent = '▲ ' + rateCumulativeEnergyLoss.toFixed(2) + ' J/Iteration';
+                        document.getElementById('cumulative-energy-loss').textContent = currentData.cumulative_energy_loss.toFixed(4);
+                        document.getElementById('mean-cumulative-energy-loss').textContent = '▲ ' + rateCumulativeEnergyLoss.toFixed(4) + ' Wh/Iteration';
 
                         document.getElementById('current-outflow-volume').textContent = currentData.outflow_volume.toFixed(6);
                         document.getElementById('mean-outflow-volume').textContent = 'Ø ' + meanOutflowVolume.toFixed(6);
@@ -498,7 +498,7 @@ class LiveMassImbalanceMonitor:
                         createPlot('plot-volume-diff', data, 'volume_diff', 'Volume Diff (%)', 'green', currentData.volume_diff);
                         createPlot('plot-power-loss', data, 'power_loss', 'Net Power Loss (W)', 'orange', currentData.power_loss);
                         createPlot('plot-energy-loss', data, 'energy_loss', 'Net Energy Loss (J)', 'purple', currentData.energy_loss);
-                        createPlot('plot-cumulative-energy-loss', data, 'cumulative_energy_loss', 'Kumulierter Energy Loss (J)', 'darkred', currentData.cumulative_energy_loss);
+                        createPlot('plot-cumulative-energy-loss', data, 'cumulative_energy_loss', 'Kumulierter Energy Loss (Wh)', 'darkred', currentData.cumulative_energy_loss);
                         createPlot('plot-flow-volume', data, 'outflow_volume', 'Flow Volume (m³/s)', 'teal', currentData.outflow_volume);
                     }
                 })
@@ -534,7 +534,7 @@ class LiveMassImbalanceMonitor:
                 'volume_diff': float(vd),
                 'power_loss': float(pl),
                 'energy_loss': float(el),
-                'cumulative_energy_loss': float(cumulative_energy_loss),
+                'cumulative_energy_loss': float(cumulative_energy_loss / 3600.0),  # Konvertierung J -> Wh
                 'outflow_volume': float(ov)
             })
         
@@ -770,7 +770,7 @@ def create_pdf_report(data_file_path=None, output_filename=None):
     }).sort_values('Timestep')
     
     # Kumulative Werte berechnen
-    df['Cumulative_Energy_Loss_J'] = df['Net_Energy_Loss_J'].cumsum()
+    df['Cumulative_Energy_Loss_Wh'] = df['Net_Energy_Loss_J'].cumsum() / 3600.0  # Konvertierung J -> Wh
     
     # Statistiken berechnen
     stats = {
@@ -804,7 +804,7 @@ def create_pdf_report(data_file_path=None, output_filename=None):
             'std': df['Net_Energy_Loss_J'].std(),
             'min': df['Net_Energy_Loss_J'].min(),
             'max': df['Net_Energy_Loss_J'].max(),
-            'cumulative': df['Cumulative_Energy_Loss_J'].iloc[-1]
+            'cumulative': df['Cumulative_Energy_Loss_Wh'].iloc[-1]
         },
         'outflow_volume': {
             'current': df['Outflow_Volume_m3s'].iloc[-1],
@@ -842,7 +842,7 @@ def create_pdf_report(data_file_path=None, output_filename=None):
         Volume Diff:         {stats['volume_diff']['current']:>8.4f} %
         Net Power Loss:      {stats['power_loss']['current']:>8.2f} W
         Net Energy Loss:     {stats['energy_loss']['current']:>8.4f} J
-        Cumulative Energy:   {stats['energy_loss']['cumulative']:>8.2f} J
+        Cumulative Energy:   {stats['energy_loss']['cumulative']:>8.4f} Wh
         Outflow Volume:      {stats['outflow_volume']['current']:>8.6f} m³/s
         """
         
@@ -918,14 +918,14 @@ def create_pdf_report(data_file_path=None, output_filename=None):
         ax1.set_title(f'Aktuell: {stats["power_loss"]["current"]:.2f}W | Mittel: {stats["power_loss"]["mean"]:.2f}W')
         
         # Cumulative Energy Loss Plot
-        ax2.plot(df['Timestep'], df['Cumulative_Energy_Loss_J'], 'darkred', linewidth=1.5, label='Kumulierter Energy Loss')
-        ax2.scatter(df['Timestep'].iloc[-1], df['Cumulative_Energy_Loss_J'].iloc[-1], 
+        ax2.plot(df['Timestep'], df['Cumulative_Energy_Loss_Wh'], 'darkred', linewidth=1.5, label='Kumulierter Energy Loss')
+        ax2.scatter(df['Timestep'].iloc[-1], df['Cumulative_Energy_Loss_Wh'].iloc[-1], 
                    color='red', s=50, zorder=5, label='Aktueller Wert')
         ax2.set_xlabel('Timestep')
-        ax2.set_ylabel('Kumulierter Energy Loss (J)')
+        ax2.set_ylabel('Kumulierter Energy Loss (Wh)')
         ax2.grid(True, alpha=0.3)
         ax2.legend()
-        ax2.set_title(f'Gesamt: {stats["energy_loss"]["cumulative"]:.2f}J')
+        ax2.set_title(f'Gesamt: {stats["energy_loss"]["cumulative"]:.4f}Wh')
         
         plt.tight_layout()
         pdf.savefig(fig, bbox_inches='tight')
