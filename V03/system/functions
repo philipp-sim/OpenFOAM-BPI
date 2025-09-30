@@ -594,7 +594,7 @@ DataExtract
                 sliceNormal = vector(0, 0, 1);
             }
             
-            // Einmalige Berechnung der Slice-Intersektionen
+
             if (!intersectionsCalculated)
             {
                 staticSliceIntersections = calculateSliceIntersections(slicePoint, sliceNormal);
@@ -670,27 +670,19 @@ DataExtract
                     vector neighborVel = U[intersection.neighborCellId];
                     scalar neighborRho = rho[intersection.neighborCellId];
                     
-                    // Hole Zellvolumen für bessere Gewichtung
-                    scalar cellVolume = mesh.V()[intersection.cellId];
-                    scalar neighborVolume = mesh.V()[intersection.neighborCellId];
-                    
-                    // Berechne volumen-gewichtete Distanz-basierte Gewichtung
-                    scalar cellDistance = intersection.distance;
+                    // Lineare Interpolation zwischen Owner und Neighbor Zellzentren
+                    scalar ownerDistance = intersection.distance;  // Distanz Owner-Zellzentrum zur Slice
                     scalar neighborDistance = mag((mesh.C()[intersection.neighborCellId] - slicePoint) & sliceNormal);
+                    scalar totalDistance = ownerDistance + neighborDistance;  // Gesamtdistanz Owner ↔ Neighbor
                     
-                    // Gewichtung: (Volumen / Distanz) normalisiert
-                    scalar cellWeight = cellVolume / max(cellDistance, 1e-10);
-                    scalar neighborWeight = neighborVolume / max(neighborDistance, 1e-10);
-                    scalar totalWeight = cellWeight + neighborWeight;
+                    // Alpha: relativer Anteil der Distanz vom Owner zur Slice
+                    scalar alpha = ownerDistance / max(totalDistance, 1e-10);
                     
-                    if (totalWeight > 1e-10)
-                    {
-                        cellWeight /= totalWeight;
-                        neighborWeight /= totalWeight;
-                        sliceTemperature = cellWeight * sliceTemperature + neighborWeight * neighborTemp;
-                        sliceVelocity = cellWeight * sliceVelocity + neighborWeight * neighborVel;
-                        sliceRho = cellWeight * sliceRho + neighborWeight * neighborRho;
-                    }
+                    // Lineare Interpolation: value = (1-alpha)*owner + alpha*neighbor
+                    // alpha=0 → nur Owner, alpha=1 → nur Neighbor
+                    sliceTemperature = (1.0 - alpha) * sliceTemperature + alpha * neighborTemp;
+                    sliceVelocity = (1.0 - alpha) * sliceVelocity + alpha * neighborVel;
+                    sliceRho = (1.0 - alpha) * sliceRho + alpha * neighborRho;
                 }
                 
                 // Berechne Flüsse an der Slice-Fläche
@@ -718,7 +710,7 @@ DataExtract
                 }
             }
             
-            // Summiere Gesamtfläche über alle Prozesse
+            // Summiere über alle Prozesse
             reduce(totalSliceArea, sumOp<scalar>());
             reduce(inFlowMass, sumOp<scalar>());
             reduce(outFlowMass, sumOp<scalar>());
