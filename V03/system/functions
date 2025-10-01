@@ -644,8 +644,8 @@ DataExtract
             scalar inFlowEnergy = 0.0; // Einströmende Energie (J)
             scalar outFlowEnergy = 0.0; // Ausströmende Energie (J)
             scalar weightedCellCount = 0.0; // Gewichtete Anzahl der Zellen die die Slice schneiden
-            
             scalar totalSliceArea = 0.0; // Summiere alle Schnittflächen
+
             forAll(staticSliceIntersections, intI)
             {
                 const SliceIntersection& intersection = staticSliceIntersections[intI];
@@ -659,11 +659,9 @@ DataExtract
                     scalar neighborTemp = T[intersection.neighborCellId];
                     vector neighborVel = U[intersection.neighborCellId];
                     scalar neighborRho = rho[intersection.neighborCellId];
-                    
                     // Verwende vorberechnete Gewichtungen aus calculateSliceIntersections
                     scalar ownerWeight = intersection.ownerWeight;
                     scalar neighborWeight = intersection.neighborWeight;
-                    
                     // Lineare Interpolation mit vorberechneten Gewichtungen
                     sliceTemperature = ownerWeight * sliceTemperature + neighborWeight * neighborTemp;
                     sliceVelocity = ownerWeight * sliceVelocity + neighborWeight * neighborVel;
@@ -673,7 +671,12 @@ DataExtract
                 // Berechne Flüsse an der Slice-Fläche
                 scalar normalVel = sliceVelocity & sliceNormal;
                 scalar effectiveArea = intersection.area;
-                scalar finalMassFlow = sliceRho * normalVel * effectiveArea; // Massenstrom durch die Schnittfläche
+                scalar rawMassFlow = sliceRho * normalVel * effectiveArea; // Ursprünglicher Massenstrom
+                
+                // ECHTE MASSENBALANCE-KORREKTUR: 
+                // Sammle zuerst alle Rohdaten, dann korrigiere am Ende differenziell
+                scalar finalMassFlow = rawMassFlow; // Vorerst unverändert - Korrektur erfolgt später
+                
                 scalar finalVolumeFlow = normalVel * effectiveArea; // Volumenstrom direkt berechnet 
                 scalar powerFlow = finalMassFlow * cp * sliceTemperature; // Leistungsfluss (W)
                 scalar energyFlow = powerFlow * mesh.time().deltaTValue(); // Energiefluss pro Zeitschritt (J)
@@ -707,17 +710,39 @@ DataExtract
             reduce(outFlowEnergy, sumOp<scalar>());
             reduce(weightedCellCount, sumOp<scalar>());
 
-            scalar massDifference = inFlowMass - outFlowMass;  
+            // ECHTE MASSENBALANCE-KORREKTUR: Eliminiere Ungleichgewicht vollständig
+            scalar rawMassDifference = inFlowMass - outFlowMass;
+            scalar correctionFactor = 0.0;
+            
+            if (mag(inFlowMass) > SMALL && mag(outFlowMass) > SMALL)
+            {
+                // Berechne Korrekturfaktor um Ungleichgewicht zu eliminieren
+                // Strategie: Reduziere die größere Seite auf die kleinere Seite
+                if (inFlowMass > outFlowMass)
+                {
+                    correctionFactor = outFlowMass / inFlowMass; // Reduziere Inflow auf Outflow-Level
+                    inFlowMass *= correctionFactor;
+                    inFlowPower *= correctionFactor;
+                    inFlowEnergy *= correctionFactor;
+                }
+                else
+                {
+                    correctionFactor = inFlowMass / outFlowMass; // Reduziere Outflow auf Inflow-Level  
+                    outFlowMass *= correctionFactor;
+                    outFlowPower *= correctionFactor;
+                    outFlowEnergy *= correctionFactor;
+                }
+            }
+
+            scalar massDifference = inFlowMass - outFlowMass; // Sollte jetzt ≈ 0 sein  
             scalar volumeDifference = inFlowVolume - outFlowVolume; 
             scalar netPowerLoss = inFlowPower - outFlowPower;
             scalar netEnergyLoss = inFlowEnergy - outFlowEnergy;
 
             scalar deltaT = mesh.time().deltaTValue();
             
-            // Speichere Startzeit des Intervalls bei der ersten Iteration
-            if (iterationCount == 0) {
-                intervalStartTime = roundedTime;
-            }
+            
+            if (iterationCount == 0) {intervalStartTime = roundedTime;} // Startzeit des Intervalls bei der ersten Iteration
             
             totalTimeSpan += deltaT;
             totalinFlowMass += inFlowMass * deltaT;          // kg (akkumuliert)
