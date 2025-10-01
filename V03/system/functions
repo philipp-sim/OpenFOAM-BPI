@@ -527,7 +527,8 @@ DataExtract
                             scalar totalDistance = cellDistance + neighborDistance;
                             if (totalDistance > tolerance)
                             {
-                                // Distanz-basierte Gewichtung: Je näher zur Slice, desto höher das Gewicht
+                                // Inverse Distanz-Gewichtung: Je näher zur Slice, desto höher das Gewicht
+                                // ownerWeight sollte HÖHER sein wenn cellDistance KLEINER ist
                                 ownerWeight = neighborDistance / totalDistance;
                                 neighborWeight = cellDistance / totalDistance;
                             }
@@ -659,10 +660,10 @@ DataExtract
                     scalar neighborTemp = T[intersection.neighborCellId];
                     vector neighborVel = U[intersection.neighborCellId];
                     scalar neighborRho = rho[intersection.neighborCellId];
-                    // Verwende vorberechnete Gewichtungen aus calculateSliceIntersections
+                    // Verwende vorberechnete Gewichtungen (inverse Distanz-Gewichtung)
                     scalar ownerWeight = intersection.ownerWeight;
                     scalar neighborWeight = intersection.neighborWeight;
-                    // Lineare Interpolation mit vorberechneten Gewichtungen
+                    // Standard lineare Interpolation: w1*val1 + w2*val2 (w1+w2=1)
                     sliceTemperature = ownerWeight * sliceTemperature + neighborWeight * neighborTemp;
                     sliceVelocity = ownerWeight * sliceVelocity + neighborWeight * neighborVel;
                     sliceRho = ownerWeight * sliceRho + neighborWeight * neighborRho;
@@ -671,13 +672,8 @@ DataExtract
                 // Berechne Flüsse an der Slice-Fläche
                 scalar normalVel = sliceVelocity & sliceNormal;
                 scalar effectiveArea = intersection.area;
-                scalar rawMassFlow = sliceRho * normalVel * effectiveArea; // Ursprünglicher Massenstrom
-                
-                // ECHTE MASSENBALANCE-KORREKTUR: 
-                // Sammle zuerst alle Rohdaten, dann korrigiere am Ende differenziell
-                scalar finalMassFlow = rawMassFlow; // Vorerst unverändert - Korrektur erfolgt später
-                
                 scalar finalVolumeFlow = normalVel * effectiveArea; // Volumenstrom direkt berechnet 
+                scalar finalMassFlow = sliceRho * finalVolumeFlow; // Massenstrom durch die Schnittfläche
                 scalar powerFlow = finalMassFlow * cp * sliceTemperature; // Leistungsfluss (W)
                 scalar energyFlow = powerFlow * mesh.time().deltaTValue(); // Energiefluss pro Zeitschritt (J)
                 weightedCellCount += 1.0;
@@ -710,31 +706,7 @@ DataExtract
             reduce(outFlowEnergy, sumOp<scalar>());
             reduce(weightedCellCount, sumOp<scalar>());
 
-            // ECHTE MASSENBALANCE-KORREKTUR: Eliminiere Ungleichgewicht vollständig
-            scalar rawMassDifference = inFlowMass - outFlowMass;
-            scalar correctionFactor = 0.0;
-            
-            if (mag(inFlowMass) > SMALL && mag(outFlowMass) > SMALL)
-            {
-                // Berechne Korrekturfaktor um Ungleichgewicht zu eliminieren
-                // Strategie: Reduziere die größere Seite auf die kleinere Seite
-                if (inFlowMass > outFlowMass)
-                {
-                    correctionFactor = outFlowMass / inFlowMass; // Reduziere Inflow auf Outflow-Level
-                    inFlowMass *= correctionFactor;
-                    inFlowPower *= correctionFactor;
-                    inFlowEnergy *= correctionFactor;
-                }
-                else
-                {
-                    correctionFactor = inFlowMass / outFlowMass; // Reduziere Outflow auf Inflow-Level  
-                    outFlowMass *= correctionFactor;
-                    outFlowPower *= correctionFactor;
-                    outFlowEnergy *= correctionFactor;
-                }
-            }
-
-            scalar massDifference = inFlowMass - outFlowMass; // Sollte jetzt ≈ 0 sein  
+            scalar massDifference = inFlowMass - outFlowMass;  
             scalar volumeDifference = inFlowVolume - outFlowVolume; 
             scalar netPowerLoss = inFlowPower - outFlowPower;
             scalar netEnergyLoss = inFlowEnergy - outFlowEnergy;
