@@ -646,6 +646,10 @@ DataExtract
             scalar outFlowEnergy = 0.0; // Ausströmende Energie (J)
             scalar weightedCellCount = 0.0; // Gewichtete Anzahl der Zellen die die Slice schneiden
             scalar totalSliceArea = 0.0; // Summiere alle Schnittflächen
+            scalar inFlowTemp = 0.0; // Temperatur der einströmenden Luft (K)
+            scalar outFlowTemp = 0.0; // Temperatur der ausströmenden Luft
+            scalar inFlowCellCount = 0.0; // Anzahl der Zellen die einströmende Luft liefern
+            scalar outFlowCellCount = 0.0; // Anzahl der Zellen die aus
 
             forAll(staticSliceIntersections, intI)
             {
@@ -684,7 +688,9 @@ DataExtract
                     inFlowMass += finalMassFlow; 
                     inFlowVolume += finalVolumeFlow; 
                     inFlowPower += powerFlow; 
-                    inFlowEnergy += energyFlow; 
+                    inFlowEnergy += energyFlow;
+                    inFlowTemp += sliceTemperature;
+                    inFlowCellCount += 1.0;
                 }
                 else if (normalVel < -SMALL)
                 {
@@ -692,6 +698,8 @@ DataExtract
                     outFlowVolume += mag(finalVolumeFlow); 
                     outFlowPower += mag(powerFlow); 
                     outFlowEnergy += mag(energyFlow); 
+                    outFlowTemp += sliceTemperature;
+                    outFlowCellCount += 1.0;
                 }
             }
             
@@ -706,6 +714,10 @@ DataExtract
             reduce(inFlowEnergy, sumOp<scalar>());
             reduce(outFlowEnergy, sumOp<scalar>());
             reduce(weightedCellCount, sumOp<scalar>());
+            reduce(inFlowTemp, sumOp<scalar>());
+            reduce(outFlowTemp, sumOp<scalar>());
+            reduce(inFlowCellCount, sumOp<scalar>());
+            reduce(outFlowCellCount, sumOp<scalar>());
 
             scalar massDifference = inFlowMass - outFlowMass;  
             scalar volumeDifference = inFlowVolume - outFlowVolume; 
@@ -749,6 +761,7 @@ DataExtract
                     scalar avgVolume = 0.5 * (avginFlowVolume + avgoutFlowVolume);
                     scalar avgPower = 0.5 * (avginFlowPower + avgoutFlowPower);
                     scalar avgEnergy = 0.5 * (totalinFlowEnergy + totaloutFlowEnergy);
+             
 
                     scalar massImbalancePercent = (avgMass > SMALL) ? 100.0 * avgMassRate / avgMass : 0.0;
                     scalar volumeImbalancePercent = (avgVolume > SMALL) ? 100.0 * avgVolumeRate / avgVolume : 0.0;
@@ -775,6 +788,14 @@ DataExtract
                            << "  Inflow energy:   " << totalinFlowEnergy << " J \n"
                            << "  Outflow energy:  " << totaloutFlowEnergy << " J \n"
                            << "  Net energy loss: " << totalEnergyTransfer << " J (" << netEnergyLossPercent << " %)\n"
+                           << "Debug flows:\n"
+                           << "  Inflow Temp:   " << inFlowTemp / inFlowCellCount << " K \n"
+                           << "  Outflow Temp:  " << outFlowTemp / outFlowCellCount << " K \n"
+                           << "  Net Temp loss: " << inFlowTemp / inFlowCellCount - outFlowTemp / outFlowCellCount << " K \n"
+                           << "  Inflow mass:     " << avginFlowMass * intervalMidTime << " kg\n"
+                           << "  Outflow mass:    " << avgoutFlowMass * intervalMidTime << " kg\n"
+                           << "  Inflow Energy:     " << avginFlowMass * intervalMidTime * cp * inFlowTemp << " J\n"
+                           << "  Outflow Energy:    " << avgoutFlowMass * intervalMidTime * cp * outFlowTemp << " J\n"
                            << "Iterations:       " << iterationCount << "\n"
                            << "Area:             " << totalSliceArea << " m²\n"
                            << "----------------------------------------\n";
