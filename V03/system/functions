@@ -671,26 +671,27 @@ DataExtract
                 
                 // Berechne Flüsse an der Slice-Fläche
                 scalar normalVel = sliceVelocity & sliceNormal;
+                //Info << "Cell " << intersection.cellId << " normal velocity: " << normalVel << " m/s, area: " << intersection.area << " m²" << endl;
                 scalar effectiveArea = intersection.area;
-                scalar finalVolumeFlow = normalVel * effectiveArea; // Volumenstrom direkt berechnet 
-                scalar finalMassFlow = sliceRho * finalVolumeFlow; // Massenstrom durch die Schnittfläche
-                scalar powerFlow = finalMassFlow * cp * sliceTemperature; // Leistungsfluss (W)
+                scalar finalVolumeFlow = normalVel * effectiveArea;  // m³/s
+                scalar finalMassFlow = sliceRho * finalVolumeFlow;  // kg/s
+                scalar powerFlow = finalMassFlow * cp * sliceTemperature; // Leistungsfluss (W) J/s
                 scalar energyFlow = powerFlow * mesh.time().deltaTValue(); // Energiefluss pro Zeitschritt (J)
                 weightedCellCount += 1.0;
                 
-                if (finalMassFlow > SMALL) // Ausströmend
+                if (normalVel > SMALL)
                 {
-                    outFlowMass += finalMassFlow; // Addiere zu ausströmender Masse
-                    outFlowVolume += finalVolumeFlow; // Addiere zu ausströmendem Volumen
-                    outFlowPower += powerFlow; // Addiere zu ausströmender Leistung
-                    outFlowEnergy += energyFlow; // Addiere zu ausströmender Energie
+                    inFlowMass += finalMassFlow; 
+                    inFlowVolume += finalVolumeFlow; 
+                    inFlowPower += powerFlow; 
+                    inFlowEnergy += energyFlow; 
                 }
-                else if (finalMassFlow < -SMALL) // Einströmend
+                else if (normalVel < -SMALL)
                 {
-                    inFlowMass += mag(finalMassFlow); // Addiere Betrag zu einströmender Masse
-                    inFlowVolume += mag(finalVolumeFlow); // Addiere Betrag zu einströmendem Volumen
-                    inFlowPower += mag(powerFlow); // Addiere Betrag zu einströmender Leistung
-                    inFlowEnergy += mag(energyFlow); // Addiere Betrag zu einströmender Energie
+                    outFlowMass += mag(finalMassFlow); 
+                    outFlowVolume += mag(finalVolumeFlow); 
+                    outFlowPower += mag(powerFlow); 
+                    outFlowEnergy += mag(energyFlow); 
                 }
             }
             
