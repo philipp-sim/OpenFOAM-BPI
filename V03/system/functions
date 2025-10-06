@@ -582,14 +582,24 @@ DataExtract
         //--------------------------------------------------------
         auto extractEnergyLoss = [&](const word& direction, const vector& lower, const vector& upper, const scalar& roundedTime)
         {
-            // Definition der Slice-Ebene
+
             vector slicePoint = vector::zero;
             vector sliceNormal = vector::zero;
-            
+
             if (direction == "x") { slicePoint = vector(lower.x(), 0, 0); sliceNormal = vector(1, 0, 0); }
             else if (direction == "y") { slicePoint = vector(0, lower.y(), 0); sliceNormal = vector(0, 1, 0); }
             else if (direction == "z") { slicePoint = vector(0, 0, lower.z()); sliceNormal = vector(0, 0, 1); }
-            
+
+            const fvMesh& mesh = this->mesh(); // Referenz auf das Mesh
+            const volScalarField& T = mesh.lookupObject<volScalarField>("T"); // Temperaturfeld
+            const volVectorField& U = mesh.lookupObject<volVectorField>("U"); // Geschwindigkeitsfeld
+            const volScalarField& rho = mesh.lookupObject<volScalarField>("rho"); // Dichtefeld
+            const scalar cp = 1005.0; // spezifische Wärmekapazität von Luft bei konstantem Druck in J/(kg*K)
+
+            fileName mergedDir = mesh.time().globalPath() / "postProcess" / "EnergyLoss";
+            mkDir(mergedDir); 
+            fileName mergedOutputPath = mergedDir / "Data"; 
+            if (roundedTime == 0 && isFile(mergedOutputPath)){std::remove(mergedOutputPath.c_str());} // Lösche existierende Datei bei t=0
 
             if (!intersectionsCalculated)
             {
@@ -614,7 +624,7 @@ DataExtract
             static bool buffersInitialized = false;
             static scalar intervalStartTime = 0.0;
             
-            if (!buffersInitialized) { // Initialisiere Akkumulatoren beim ersten Aufruf
+            if (!buffersInitialized) { 
                 totalTimeSpan = 0.0;
                 totalMassTransfer = 0.0;
                 totalVolumeTransfer = 0.0;
@@ -624,17 +634,6 @@ DataExtract
                 intervalStartTime = roundedTime;
                 buffersInitialized = true;
             }
-
-            const fvMesh& mesh = this->mesh(); // Referenz auf das Mesh
-            const volScalarField& T = mesh.lookupObject<volScalarField>("T"); // Temperaturfeld
-            const volVectorField& U = mesh.lookupObject<volVectorField>("U"); // Geschwindigkeitsfeld
-            const volScalarField& rho = mesh.lookupObject<volScalarField>("rho"); // Dichtefeld
-            const scalar cp = 1005.0; // spezifische Wärmekapazität von Luft bei konstantem Druck in J/(kg*K)
-
-            fileName mergedDir = mesh.time().globalPath() / "postProcess" / "EnergyLoss";
-            mkDir(mergedDir); 
-            fileName mergedOutputPath = mergedDir / "Data"; 
-            if (roundedTime == 0 && isFile(mergedOutputPath)){std::remove(mergedOutputPath.c_str());} // Lösche existierende Datei bei t=0
 
             scalar inFlowMass = 0.0; // Einströmende Masse (kg/s)
             scalar outFlowMass = 0.0; // Ausströmende Masse (kg/s)
@@ -648,13 +647,13 @@ DataExtract
             scalar totalSliceArea = 0.0; // Summiere alle Schnittflächen
             scalar inFlowTemp = 0.0; // Temperatur der einströmenden Luft (K)
             scalar outFlowTemp = 0.0; // Temperatur der ausströmenden Luft
-            scalar inFlowCellCount = 0.0; // Anzahl der Zellen die einströmende Luft liefern
-            scalar outFlowCellCount = 0.0; // Anzahl der Zellen die aus
+            scalar inFlowCellCount = 0.0; 
+            scalar outFlowCellCount = 0.0; 
 
             forAll(staticSliceIntersections, intI)
             {
                 const SliceIntersection& intersection = staticSliceIntersections[intI];
-                totalSliceArea += intersection.area; // Addiere Fläche zur Gesamtsumme
+                totalSliceArea += intersection.area; 
                 scalar sliceTemperature = T[intersection.cellId];
                 vector sliceVelocity = U[intersection.cellId];
                 scalar sliceRho = rho[intersection.cellId];
@@ -664,7 +663,6 @@ DataExtract
                     scalar neighborTemp = T[intersection.neighborCellId];
                     vector neighborVel = U[intersection.neighborCellId];
                     scalar neighborRho = rho[intersection.neighborCellId];
-                    // Verwende vorberechnete Gewichtungen (inverse Distanz-Gewichtung)
                     scalar ownerWeight = intersection.ownerWeight;
                     scalar neighborWeight = intersection.neighborWeight;
                     // Standard lineare Interpolation: w1*val1 + w2*val2 (w1+w2=1)
@@ -673,9 +671,8 @@ DataExtract
                     sliceRho = ownerWeight * sliceRho + neighborWeight * neighborRho;
                 }
                 
-                // Berechne Flüsse an der Slice-Fläche
+
                 scalar normalVel = sliceVelocity & sliceNormal;
-                //Info << "Cell " << intersection.cellId << " normal velocity: " << normalVel << " m/s, area: " << intersection.area << " m²" << endl;
                 scalar effectiveArea = intersection.area;
                 scalar finalVolumeFlow = normalVel * effectiveArea;  // m³/s
                 scalar finalMassFlow = sliceRho * finalVolumeFlow;  // kg/s
@@ -689,7 +686,7 @@ DataExtract
                     inFlowVolume += finalVolumeFlow; 
                     inFlowPower += powerFlow; 
                     inFlowEnergy += energyFlow;
-                    inFlowTemp += sliceTemperature;
+                    inFlowTemp += sliceTemperature * finalMassFlow; // Masse-gewichtet
                     inFlowCellCount += 1.0;
                 }
                 else if (normalVel < -SMALL)
@@ -698,7 +695,7 @@ DataExtract
                     outFlowVolume += mag(finalVolumeFlow); 
                     outFlowPower += mag(powerFlow); 
                     outFlowEnergy += mag(energyFlow); 
-                    outFlowTemp += sliceTemperature;
+                    outFlowTemp += sliceTemperature * mag(finalMassFlow); // Masse-gewichtet
                     outFlowCellCount += 1.0;
                 }
             }
@@ -723,6 +720,8 @@ DataExtract
             scalar volumeDifference = inFlowVolume - outFlowVolume; 
             scalar netPowerLoss = inFlowPower - outFlowPower;
             scalar netEnergyLoss = inFlowEnergy - outFlowEnergy;
+            inFlowTemp = inFlowTemp / inFlowMass;
+            outFlowTemp = outFlowTemp / outFlowMass;
 
             scalar deltaT = mesh.time().deltaTValue();
             
@@ -788,14 +787,15 @@ DataExtract
                            << "  Inflow energy:   " << totalinFlowEnergy << " J \n"
                            << "  Outflow energy:  " << totaloutFlowEnergy << " J \n"
                            << "  Net energy loss: " << totalEnergyTransfer << " J (" << netEnergyLossPercent << " %)\n"
+
                            << "Debug flows:\n"
-                           << "  Inflow Temp:   " << inFlowTemp / inFlowCellCount << " K \n"
-                           << "  Outflow Temp:  " << outFlowTemp / outFlowCellCount << " K \n"
-                           << "  Net Temp loss: " << inFlowTemp / inFlowCellCount - outFlowTemp / outFlowCellCount << " K \n"
-                           << "  Inflow mass:     " << avginFlowMass * intervalMidTime << " kg\n"
-                           << "  Outflow mass:    " << avgoutFlowMass * intervalMidTime << " kg\n"
-                           << "  Inflow Energy:     " << avginFlowMass * intervalMidTime * cp * inFlowTemp << " J\n"
-                           << "  Outflow Energy:    " << avgoutFlowMass * intervalMidTime * cp * outFlowTemp << " J\n"
+                           << "  Inflow Temp:   " << inFlowTemp  << " K \n"               
+                           << "  Outflow Temp:  " << outFlowTemp << " K \n"                        
+                           << "  Net Temp loss: " << inFlowTemp - outFlowTemp << " K \n"
+                           << "  Inflow mass:     " << inFlowMass * totalTimeSpan << " kg\n"
+                           << "  Outflow mass:    " << outFlowMass * totalTimeSpan << " kg\n"
+                           << "  Inflow Energy:     " << inFlowMass * totalTimeSpan * cp * inFlowTemp << " J\n"
+                           << "  Outflow Energy:    " << outFlowMass * totalTimeSpan * cp * outFlowTemp << " J\n"
                            << "Iterations:       " << iterationCount << "\n"
                            << "Area:             " << totalSliceArea << " m²\n"
                            << "----------------------------------------\n";
