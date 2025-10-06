@@ -1,0 +1,94 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+#include "${FOAM_CASE}/constant/initialisationConditions"
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   uniform $!internalField/T;
+
+boundaryField
+{
+    #includeEtc "caseDicts/setConstraintTypes"
+
+    atmosphere
+    {
+        type            inletOutlet;
+        inletValue      uniform $!atmosphere/T;
+        inlet	    	uniform $!atmosphere/T;
+    }
+
+    /*staticWalls
+    {
+        type            fixedValue;
+	value uniform $!surface/T;
+    }*/
+
+    window
+    {
+        type zeroGradient;
+    }
+
+    walls
+    {
+        type            fixedValue;
+	value uniform $!surface/T;
+    }
+
+    //staticWalls
+    /*walls
+    {
+	type codedFixedValue;
+        value uniform $!surface/T;
+	name thermoWall;
+
+        codeOptions
+        #{
+            -I"../../include"
+        #};
+        codeInclude
+        #{
+            #include "thermoWallCode.H"
+        #};
+
+        code
+        #{
+            
+            scalar rho = 2000.0;    // kg/m3 (concrete)
+            scalar cp = 1000.0;     // J/(kg K) thermal capacity
+            scalar d = 0.2;         // m (thickness of wall)
+            updateThermoWall(*this, rho, cp, d);
+        #};
+    }*/
+
+
+
+    movingWalls
+    {
+        type zeroGradient;
+    }
+
+    nonCouple
+    {
+        type            zeroGradient;
+    }
+
+    ".*"
+    {
+        type            zeroGradient;
+    }
+}
+
+// ************************************************************************* //

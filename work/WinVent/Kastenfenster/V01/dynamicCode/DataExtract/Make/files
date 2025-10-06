@@ -1,0 +1,6 @@
+# dynamicCode:
+# SHA1 = 0ae777a90e9ee978561550b3de303efe164d6b28
+
+codedFunctionObjectTemplate.C
+
+LIB = $(PWD)/../platforms/$(WM_OPTIONS)/lib/libDataExtract_0ae777a90e9ee978561550b3de303efe164d6b28
