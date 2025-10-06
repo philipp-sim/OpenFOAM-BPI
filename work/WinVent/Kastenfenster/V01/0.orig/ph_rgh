@@ -35,6 +35,12 @@ boundaryField
         value           $internalField;
     }
 
+    glassWalls
+    {
+        $staticWalls;
+    }
+
+
     movingWalls
     {
         $staticWalls;

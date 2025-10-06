@@ -40,11 +40,39 @@ boundaryField
     {
         type zeroGradient;
     }
-
+    
+    glass_master
+    {
+        type            compressible::turbulentTemperatureRadCoupledMixed;
+        value           uniform $internalField;
+        Tnbr            T;                    // Temperaturfeld auf der anderen Seite
+        kappaMethod     fluidThermo;          // Wärmeleitfähigkeit aus Fluid
+        kappa           none;
+        
+        // Glas-Wärmewiderstand für U = 5.7 W/(m²*K)
+        thermalResistance  uniform 0.175;    // = 1/5.7 (m²*K)/W
+        
+        qrNbr           none;
+        qr              none;
+    }
+    
+    glass_slave
+    {
+        type            compressible::turbulentTemperatureRadCoupledMixed;
+        value           uniform $internalField;
+        Tnbr            T;
+        kappaMethod     fluidThermo;
+        kappa           none;
+        
+        thermalResistance  uniform 0.175;    // = 1/5.7 (m²*K)/W
+        
+        qrNbr           none;
+        qr              none;
+    }
     walls
     {
         type            fixedValue;
-	value uniform $!surface/T;
+	    value uniform $!surface/T;
     }
 
     //staticWalls

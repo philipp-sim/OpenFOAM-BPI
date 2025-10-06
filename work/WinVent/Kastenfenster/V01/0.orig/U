@@ -42,6 +42,17 @@ boundaryField
         value           uniform (0 0 0);
     }
 
+    glass_master
+    {
+        type            noSlip;
+        value           uniform (0 0 0);
+    }
+
+    glass_slave
+    {
+        $glass_master;
+    }
+
     movingWalls
     {
         type            movingWallVelocity;

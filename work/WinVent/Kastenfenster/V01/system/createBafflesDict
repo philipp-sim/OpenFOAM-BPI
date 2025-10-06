@@ -17,21 +17,29 @@ internalFacesOnly true;
 
 baffles
 {
-    nonCouple
+    glass
     {
         type        faceZone;
-        zoneName    couple;
-
-        owner
+        zoneName    glass;
+        
+        patches
         {
-            name        nonCouple1;
-            type        patch;
-        }
-
-        neighbour
-        {
-            name        nonCouple2;
-            type        patch;
+            master
+            {
+                name            glass_master;
+                type            mappedWall;      
+                sampleMode      nearestPatchFace;
+                sampleRegion    region0;
+                samplePatch     glass_slave;
+            }
+            slave
+            {
+                name            glass_slave;
+                type            mappedWall;      
+                sampleMode      nearestPatchFace;
+                sampleRegion    region0;
+                samplePatch     glass_master;
+            }
         }
     }
 }

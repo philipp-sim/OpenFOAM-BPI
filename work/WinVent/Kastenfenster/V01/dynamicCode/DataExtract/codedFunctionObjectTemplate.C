@@ -50,11 +50,11 @@ addRemovableToRunTimeSelectionTable
 extern "C"
 {
     // dynamicCode:
-    // SHA1 = 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c
+    // SHA1 = b30b19f3266815932784d0c4935e12995c9c050d
     //
     // unique function name that can be checked if the correct library version
     // has been loaded
-    void DataExtract_7aa3dc5f147f67b8c2b07115a51bf778a2dc742c(bool load)
+    void DataExtract_b30b19f3266815932784d0c4935e12995c9c050d(bool load)
     {
         if (load)
         {
@@ -110,7 +110,7 @@ bool DataExtractFunctionObject::read(const dictionary& dict)
 {
     if (false)
     {
-        Info<<"read DataExtract sha1: 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c\n";
+        Info<<"read DataExtract sha1: b30b19f3266815932784d0c4935e12995c9c050d\n";
     }
 
 //{{{ begin code
@@ -125,7 +125,7 @@ Foam::wordList DataExtractFunctionObject::fields() const
 {
     if (false)
     {
-        Info<<"fields DataExtract sha1: 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c\n";
+        Info<<"fields DataExtract sha1: b30b19f3266815932784d0c4935e12995c9c050d\n";
     }
 
     wordList fields;
@@ -141,7 +141,7 @@ bool DataExtractFunctionObject::execute()
 {
     if (false)
     {
-        Info<<"execute DataExtract sha1: 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c\n";
+        Info<<"execute DataExtract sha1: b30b19f3266815932784d0c4935e12995c9c050d\n";
     }
 
 //{{{ begin code
@@ -801,7 +801,7 @@ auto extractFieldData = [&](const word& fieldName, const vector& lower, const ve
             //extractFieldData("p", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             //extractEnergyLoss("y", vector(0.450, -0.15, 0.786), vector(1.652, 0, 2.238), roundedTime);
         }
-        extractEnergyLoss("y", vector(0.531, -0.06, 0.867), vector(1.571, -0.06, 2.157), time);
+        //extractEnergyLoss("y", vector(0.531, -0.06, 0.867), vector(1.571, -0.06, 2.157), time);
 //}}} end code
 
     return true;
@@ -812,7 +812,7 @@ bool DataExtractFunctionObject::write()
 {
     if (false)
     {
-        Info<<"write DataExtract sha1: 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c\n";
+        Info<<"write DataExtract sha1: b30b19f3266815932784d0c4935e12995c9c050d\n";
     }
 
 //{{{ begin code
@@ -827,7 +827,7 @@ bool DataExtractFunctionObject::end()
 {
     if (false)
     {
-        Info<<"end DataExtract sha1: 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c\n";
+        Info<<"end DataExtract sha1: b30b19f3266815932784d0c4935e12995c9c050d\n";
     }
 
 //{{{ begin code

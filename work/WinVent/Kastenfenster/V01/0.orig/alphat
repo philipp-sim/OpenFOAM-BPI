@@ -35,10 +35,21 @@ boundaryField
     staticWalls
     {
         
-	type            compressible::alphatJayatillekeWallFunction;//compressible::alphatWallFunction;
+	    type            compressible::alphatJayatillekeWallFunction;
         Prt            	0.85;
-        value           $bcField; //$internalField;
+        value           $bcField; 
     }
+
+    glass_master
+    {
+        $staticWalls;
+    }
+
+    glass_slave
+    {
+        $glass_master;
+    }
+	
 	
     movingWalls
     {

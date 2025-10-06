@@ -36,6 +36,16 @@ boundaryField
         type            zeroGradient;
     }
 
+    glass_master
+    {
+        $staticWalls;
+    }
+
+    glass_slave
+    {
+        $glass_master;
+    }
+
     movingWalls
     {
     $staticWalls;

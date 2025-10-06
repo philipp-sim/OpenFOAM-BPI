@@ -19,6 +19,7 @@ surfaces
     "window.stl"
     "atmosphere_ground.stl"
     "atmosphere_outlet.stl"
+    "glass.stl"
 );
 
 // Identify edges when angle between faces < includedAngle

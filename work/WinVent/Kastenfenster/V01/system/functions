@@ -846,6 +846,6 @@ DataExtract
             //extractFieldData("p", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             //extractEnergyLoss("y", vector(0.450, -0.15, 0.786), vector(1.652, 0, 2.238), roundedTime);
         }
-        extractEnergyLoss("y", vector(0.531, -0.06, 0.867), vector(1.571, -0.06, 2.157), time);
+        //extractEnergyLoss("y", vector(0.531, -0.06, 0.867), vector(1.571, -0.06, 2.157), time);
     #};
 }

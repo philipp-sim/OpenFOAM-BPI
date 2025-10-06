@@ -43,11 +43,17 @@ geometry
         file        "window.stl";
     }
 
+    glass
+    {
+        type        triSurfaceMesh;
+        file        "glass.stl";
+    }
+
     indoor_volume
     {
-        type searchableBox;
-        min (0 0 0);
-        max (4.183 3.184 2.690);
+    type searchableBox;
+    min (0 0 0);
+    max (4.183 3.184 2.690);
     }
     
 };
@@ -68,6 +74,10 @@ castellatedMeshControls
         }
         {
             file        "window.eMesh";
+            level       4;
+        }
+        {
+            file        "glass.eMesh";
             level       4;
         }
         {
@@ -111,7 +121,6 @@ castellatedMeshControls
             }
         }
 
-
         walls
         {
             level       (2 3);
@@ -131,15 +140,25 @@ castellatedMeshControls
                 inGroups (staticWalls);
             }
         }
+        
+        glass
+            {
+                level       (3 5);
+  
+                faceZone    glass;
+                cellZone    glass;
+                cellZoneInside inside;
+                
+                patchInfo
+                {
+                    type            baffle;        
+                    inGroups        (glassWalls);
+                }
+            }
 
     }
     refinementRegions
     {
-        couple
-        {
-            mode inside;
-            levels ((1 2)); // 1 3
-        }
 	    indoor_volume
         {
             mode inside;

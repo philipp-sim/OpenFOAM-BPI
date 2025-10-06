@@ -38,6 +38,16 @@ boundaryField
         value           $internalField;
     }
 
+    glass_master
+    {
+        $staticWalls;
+    }
+
+    glass_slave
+    {
+        $glass_master;
+    }
+
     movingWalls
     {
         $staticWalls;

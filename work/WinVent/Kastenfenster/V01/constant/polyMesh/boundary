@@ -26,15 +26,15 @@ atmosphere
 wall
 )
 ;
-        nFaces          208;
-        startFace       531569;
+        nFaces          346;
+        startFace       1191343;
     }
     atmosphere_outlet
     {
         type            patch;
         inGroups        List<word> 1(atmosphere);
-        nFaces          4101;
-        startFace       531777;
+        nFaces          6667;
+        startFace       1191689;
     }
     walls
     {
@@ -46,8 +46,8 @@ staticWalls
 wall
 )
 ;
-        nFaces          17543;
-        startFace       535878;
+        nFaces          19378;
+        startFace       1198356;
     }
     window
     {
@@ -59,8 +59,8 @@ staticWalls
 wall
 )
 ;
-        nFaces          1559;
-        startFace       553421;
+        nFaces          28184;
+        startFace       1217734;
     }
 )
 

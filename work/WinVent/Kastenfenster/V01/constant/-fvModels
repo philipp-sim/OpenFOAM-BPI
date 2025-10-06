@@ -1,0 +1,25 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      fvModels;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+thermalBaffleGlass
+{
+    type            thermalBaffle;
+    libs            ("libfvModels.so");
+    
+    patches         (glass_master glass_slave);
+    
+    // Direkt U-Wert verwenden
+    thermalConductance  5.7;    // W/(m²*K)
+}
