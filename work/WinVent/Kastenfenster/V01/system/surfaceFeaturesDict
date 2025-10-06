@@ -17,7 +17,7 @@ surfaces
 (
     "walls.stl"
     "window.stl"
-    "innerInlet.stl"
+    "atmosphere_ground.stl"
     "atmosphere_outlet.stl"
 );
 

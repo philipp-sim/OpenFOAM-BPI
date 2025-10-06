@@ -50,11 +50,11 @@ addRemovableToRunTimeSelectionTable
 extern "C"
 {
     // dynamicCode:
-    // SHA1 = 0ae777a90e9ee978561550b3de303efe164d6b28
+    // SHA1 = 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c
     //
     // unique function name that can be checked if the correct library version
     // has been loaded
-    void DataExtract_0ae777a90e9ee978561550b3de303efe164d6b28(bool load)
+    void DataExtract_7aa3dc5f147f67b8c2b07115a51bf778a2dc742c(bool load)
     {
         if (load)
         {
@@ -110,7 +110,7 @@ bool DataExtractFunctionObject::read(const dictionary& dict)
 {
     if (false)
     {
-        Info<<"read DataExtract sha1: 0ae777a90e9ee978561550b3de303efe164d6b28\n";
+        Info<<"read DataExtract sha1: 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c\n";
     }
 
 //{{{ begin code
@@ -125,7 +125,7 @@ Foam::wordList DataExtractFunctionObject::fields() const
 {
     if (false)
     {
-        Info<<"fields DataExtract sha1: 0ae777a90e9ee978561550b3de303efe164d6b28\n";
+        Info<<"fields DataExtract sha1: 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c\n";
     }
 
     wordList fields;
@@ -141,11 +141,11 @@ bool DataExtractFunctionObject::execute()
 {
     if (false)
     {
-        Info<<"execute DataExtract sha1: 0ae777a90e9ee978561550b3de303efe164d6b28\n";
+        Info<<"execute DataExtract sha1: 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c\n";
     }
 
 //{{{ begin code
-    #line 193 "/home/ubuntu/mnt/work/validation/V03/system/functions/DataExtract"
+    #line 193 "/home/ubuntu/mnt/work/WinVent/Kastenfenster/V01/system/functions/DataExtract"
 auto extractFieldData = [&](const word& fieldName, const vector& lower, const vector& upper, const scalar& roundedTime)
         {
             const fvMesh& mesh = this->mesh();
@@ -608,7 +608,7 @@ auto extractFieldData = [&](const word& fieldName, const vector& lower, const ve
             forAll(staticSliceIntersections, intI)
             {
                 const SliceIntersection& intersection = staticSliceIntersections[intI];
-                totalSliceArea += intersection.area; // Addiere Fläche zur Gesamtsumme
+                totalSliceArea += intersection.area; 
                 scalar sliceTemperature = T[intersection.cellId];
                 vector sliceVelocity = U[intersection.cellId];
                 scalar sliceRho = rho[intersection.cellId];
@@ -618,7 +618,6 @@ auto extractFieldData = [&](const word& fieldName, const vector& lower, const ve
                     scalar neighborTemp = T[intersection.neighborCellId];
                     vector neighborVel = U[intersection.neighborCellId];
                     scalar neighborRho = rho[intersection.neighborCellId];
-                    // Verwende vorberechnete Gewichtungen (inverse Distanz-Gewichtung)
                     scalar ownerWeight = intersection.ownerWeight;
                     scalar neighborWeight = intersection.neighborWeight;
                     // Standard lineare Interpolation: w1*val1 + w2*val2 (w1+w2=1)
@@ -627,9 +626,8 @@ auto extractFieldData = [&](const word& fieldName, const vector& lower, const ve
                     sliceRho = ownerWeight * sliceRho + neighborWeight * neighborRho;
                 }
                 
-                // Berechne Flüsse an der Slice-Fläche
+
                 scalar normalVel = sliceVelocity & sliceNormal;
-                //Info << "Cell " << intersection.cellId << " normal velocity: " << normalVel << " m/s, area: " << intersection.area << " m²" << endl;
                 scalar effectiveArea = intersection.area;
                 scalar finalVolumeFlow = normalVel * effectiveArea;  // m³/s
                 scalar finalMassFlow = sliceRho * finalVolumeFlow;  // kg/s
@@ -814,7 +812,7 @@ bool DataExtractFunctionObject::write()
 {
     if (false)
     {
-        Info<<"write DataExtract sha1: 0ae777a90e9ee978561550b3de303efe164d6b28\n";
+        Info<<"write DataExtract sha1: 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c\n";
     }
 
 //{{{ begin code
@@ -829,7 +827,7 @@ bool DataExtractFunctionObject::end()
 {
     if (false)
     {
-        Info<<"end DataExtract sha1: 0ae777a90e9ee978561550b3de303efe164d6b28\n";
+        Info<<"end DataExtract sha1: 7aa3dc5f147f67b8c2b07115a51bf778a2dc742c\n";
     }
 
 //{{{ begin code

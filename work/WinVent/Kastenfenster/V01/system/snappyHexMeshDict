@@ -19,22 +19,10 @@ addLayers       false;
 
 geometry
 {
-    /*couple
+    atmosphere_ground
     {
         type        triSurfaceMesh;
-        file        "couple.stl";
-    }
-
-    rotorBlades
-    {
-        type        triSurfaceMesh;
-        file        "rotorBlades.stl";
-    }*/
-
-    innerInlet
-    {
-        type        triSurfaceMesh;
-        file        "innerInlet.stl";
+        file        "atmosphere_ground.stl";
     }
 
     atmosphere_outlet
@@ -58,16 +46,10 @@ geometry
     indoor_volume
     {
         type searchableBox;
-        min (0 -0.2 0);
-        max (1.725 3.3 2.7);
+        min (0 0 0);
+        max (4.183 3.184 2.690);
     }
     
-    /*emission_zone
-    {
-        type searchableSphere;
-        centre (1.25 1.25 1.25); 
-        radius 0.1;       
-    }*/
 };
 
 castellatedMeshControls
@@ -80,14 +62,6 @@ castellatedMeshControls
 
     features
     (
-        /*{
-            file        "couple.eMesh";
-            level       2;
-        }
-        {
-            file        "rotorBlades.eMesh";
-            level       2;
-        }*/
         {
             file        "walls.eMesh";
             level       3;
@@ -101,7 +75,7 @@ castellatedMeshControls
             level       2;
         }
         {
-            file        "innerInlet.eMesh";
+            file        "atmosphere_ground.eMesh";
             level       2;
         }
     );
@@ -117,15 +91,7 @@ castellatedMeshControls
             boundary    internal;
         }
 
-        couple
-        {
-            level       (1 1);
-            faceZone    couple;
-            cellZone    rotating;
-            mode        inside;
-        }
-
-        innerInlet
+        atmosphere_ground
         {
             level       (2 2);
             patchInfo
@@ -145,17 +111,6 @@ castellatedMeshControls
             }
         }
 
-        rotorBlades
-        {
-            level       (4 4);
-            patchInfo
-            {
-                type wall;
-                inGroups (movingWalls);
-            }
-            faceZone rotorBlades;
-            faceType baffle;
-        }
 
         walls
         {

@@ -8,46 +8,19 @@
 FoamFile
 {
     format      ascii;
-    class       dictionary;
-    location    "system";
-    object      controlDict;
+    class       featureEdgeMesh;
+    location    "constant/triSurface";
+    object      atmosphere_ground.eMesh;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     foamRun;
 
-solver          fluid;
+// points:
+4((0.73 -1.202 0) (0.73 -0.202 0) (2.73 -0.202 0) (2.73 -1.202 -5.55112e-17))
 
-startFrom       startTime;
+// edges:
+4((0 1) (1 2) (2 3) (3 0))
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-startTime       0;
-
-stopAt          endTime;
-
-endTime         600;
-
-deltaT          0.01;//1e-3;
-
-writeControl    adjustableRunTime;
-
-writeInterval   0.1;
-
-purgeWrite      0;
-
-writeFormat     ascii;
-
-writePrecision  6;
-
-writeCompression off;
-
-timeFormat      general;
-
-timePrecision   6;
-
-runTimeModifiable true;
-
-adjustTimeStep  yes;
-
-maxCo           0.8;
 
 // ************************************************************************* //

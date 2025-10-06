@@ -21,7 +21,7 @@ regions
 (
     boxToCell
     {
-        box (-4.15 -10.5 0) (5.85 -0.1 10);
+        box (0.73 -1.202 0) (2.730 -0.202 5);
         fieldValues
         (
             volScalarFieldValue T $!atmosphere/T
@@ -30,6 +30,7 @@ regions
             volScalarFieldValue specificHumidity $!atmosphere/specificHumidity
         );
     }
+    /*
     boxToCell
     {
         box (-4.15 6.1 0) (5.85 16.2 10);
@@ -40,7 +41,7 @@ regions
             volScalarFieldValue Y_CO2 $!atmosphere/Y_CO2
             volScalarFieldValue specificHumidity $!atmosphere/specificHumidity
         );
-    }
+    } */
 
 
 );

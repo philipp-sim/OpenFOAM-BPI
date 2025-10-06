@@ -16,7 +16,7 @@ FoamFile
 
 4
 (
-    innerInlet
+    atmosphere_ground
     {
         type            wall;
         inGroups        List<word> 
@@ -26,15 +26,15 @@ atmosphere
 wall
 )
 ;
-        nFaces          276;
-        startFace       343560;
+        nFaces          208;
+        startFace       531569;
     }
     atmosphere_outlet
     {
         type            patch;
         inGroups        List<word> 1(atmosphere);
-        nFaces          4292;
-        startFace       343836;
+        nFaces          4101;
+        startFace       531777;
     }
     walls
     {
@@ -46,8 +46,8 @@ staticWalls
 wall
 )
 ;
-        nFaces          10286;
-        startFace       348128;
+        nFaces          17543;
+        startFace       535878;
     }
     window
     {
@@ -59,8 +59,8 @@ staticWalls
 wall
 )
 ;
-        nFaces          6276;
-        startFace       358414;
+        nFaces          1559;
+        startFace       553421;
     }
 )
 
