@@ -28,7 +28,7 @@ baffles
             {
                 name            glass_master;
                 type            mappedWall;      
-                sampleMode      nearestPatchFace;
+                sampleMode      nearest;
                 sampleRegion    region0;
                 samplePatch     glass_slave;
             }
@@ -36,7 +36,7 @@ baffles
             {
                 name            glass_slave;
                 type            mappedWall;      
-                sampleMode      nearestPatchFace;
+                sampleMode      nearest;
                 sampleRegion    region0;
                 samplePatch     glass_master;
             }
