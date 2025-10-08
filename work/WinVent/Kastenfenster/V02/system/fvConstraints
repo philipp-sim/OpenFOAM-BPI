@@ -1,0 +1,36 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  8                                     |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvModels;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+/*
+limitT
+{
+    type            limitTemperature;
+    select 	all;
+    min             296.6;
+    max             301.6;
+*/
+/*
+    cellZone        all;
+    field           T;  
+    min             $!atmosphere/T;
+    max             $!internalField/T;
+
+*/
+
+}
+
+
+// ************************************************************************* //

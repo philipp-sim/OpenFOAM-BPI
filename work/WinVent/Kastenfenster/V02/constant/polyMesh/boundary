@@ -1,0 +1,103 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       polyBoundaryMesh;
+    location    "constant/polyMesh";
+    object      boundary;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+6
+(
+    atmosphere_ground
+    {
+        type            wall;
+        inGroups        List<word> 
+2
+(
+atmosphere
+wall
+)
+;
+        nFaces          277;
+        startFace       427270;
+    }
+    atmosphere_outlet
+    {
+        type            patch;
+        inGroups        List<word> 1(atmosphere);
+        nFaces          4180;
+        startFace       427547;
+    }
+    walls
+    {
+        type            wall;
+        inGroups        List<word> 
+2
+(
+staticWalls
+wall
+)
+;
+        nFaces          7748;
+        startFace       431727;
+    }
+    window
+    {
+        type            wall;
+        inGroups        List<word> 
+2
+(
+staticWalls
+wall
+)
+;
+        nFaces          1796;
+        startFace       439475;
+    }
+    glass_master
+    {
+        type            mappedWall;
+        inGroups        List<word> 
+3
+(
+wall
+mapped
+glass
+)
+;
+        nFaces          6092;
+        startFace       441271;
+        neighbourRegion region0;
+        neighbourPatch  glass_slave;
+        transformType   none;
+        method          nearest;
+    }
+    glass_slave
+    {
+        type            mappedWall;
+        inGroups        List<word> 
+3
+(
+wall
+mapped
+glass
+)
+;
+        nFaces          6092;
+        startFace       447363;
+        neighbourRegion region0;
+        neighbourPatch  glass_master;
+        transformType   none;
+        method          nearest;
+    }
+)
+
+// ************************************************************************* //
