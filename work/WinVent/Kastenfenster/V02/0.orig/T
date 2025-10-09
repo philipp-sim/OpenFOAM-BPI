@@ -43,12 +43,42 @@ boundaryField
     
     glass_master
     {
-        type zeroGradient;
+    type            compressible::thermalBaffle1D<eConstSolidThermoPhysics>;
+
+    neighbourPatch  glass_slave;
+
+    thickness       uniform 0.004;     // 4mm Glasdicke
+    qs              uniform 0;         // Keine interne Wärmequelle
+    qr              none;              // Keine Strahlung
+    qrRelaxation    1;
+    value           uniform $!surface/T;
+    
+    specie // Floatglas-Eigenschaften:
+    {
+        molWeight       60.08;         // SiO2 Molgewicht
+    }
+    transport
+    {
+        kappa           0.010;           // Wärmeleitfähigkeit [W/(m·K)]
+    }
+    thermodynamics
+    {
+        hf              0;             // Bildungsenthalpie
+        Cv              840;           // Spezifische Wärmekapazität [J/(kg·K)]
+    }
+    equationOfState
+    {
+        rho             2500;          // Dichte [kg/m³]
+    }
     }
 
     glass_slave
     {
-        $glass_master;
+        type            compressible::thermalBaffle1D<eConstSolidThermoPhysics>;
+        neighbourPatch  glass_master;
+        qr              none;
+        relaxation      1;
+        value           uniform $!surface/T;
     }
 
     walls

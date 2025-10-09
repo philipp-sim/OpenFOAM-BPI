@@ -53,7 +53,7 @@ geometry
     {
     type searchableBox;
     min (0 0 0);
-    max (4.183 3.184 2.690);
+    max (1 1 1);
     }
     
 };
@@ -143,7 +143,7 @@ castellatedMeshControls
         
         glass
             {
-                level       (3 5);
+                level       (4 5);
   
                 faceZone    glass;
                 cellZone    glass;

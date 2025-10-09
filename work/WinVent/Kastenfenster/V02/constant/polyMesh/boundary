@@ -26,15 +26,15 @@ atmosphere
 wall
 )
 ;
-        nFaces          277;
-        startFace       427270;
+        nFaces          408;
+        startFace       131453;
     }
     atmosphere_outlet
     {
         type            patch;
         inGroups        List<word> 1(atmosphere);
-        nFaces          4180;
-        startFace       427547;
+        nFaces          1462;
+        startFace       131861;
     }
     walls
     {
@@ -46,8 +46,8 @@ staticWalls
 wall
 )
 ;
-        nFaces          7748;
-        startFace       431727;
+        nFaces          2440;
+        startFace       133323;
     }
     window
     {
@@ -59,8 +59,8 @@ staticWalls
 wall
 )
 ;
-        nFaces          1796;
-        startFace       439475;
+        nFaces          3302;
+        startFace       135763;
     }
     glass_master
     {
@@ -73,8 +73,8 @@ mapped
 glass
 )
 ;
-        nFaces          6092;
-        startFace       441271;
+        nFaces          4656;
+        startFace       139065;
         neighbourRegion region0;
         neighbourPatch  glass_slave;
         transformType   none;
@@ -91,8 +91,8 @@ mapped
 glass
 )
 ;
-        nFaces          6092;
-        startFace       447363;
+        nFaces          4656;
+        startFace       143721;
         neighbourRegion region0;
         neighbourPatch  glass_master;
         transformType   none;

@@ -2,7 +2,7 @@
 #!/bin/bash
 source /opt/openfoam12/etc/bashrc
 
-nprocs=8
+nprocs=6
 foamDictionary system/decomposeParDict -entry numberOfSubdomains -set $nprocs
 
 rm -rf 0 > /dev/null 2>&1

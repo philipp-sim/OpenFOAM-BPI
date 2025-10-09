@@ -15,7 +15,7 @@ FoamFile
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 // points
-4((0.73 -1.202 0) (0.73 -0.202 0) (2.73 -0.202 0) (2.73 -1.202 -5.55112e-17))
+4((1 -1 0) (0 -1 0) (0 -0.2 0) (1 -0.2 0))
 // edges
 4((0 1) (1 2) (2 3) (3 0))
 // concaveStart mixedStart nonFeatureStart
@@ -23,7 +23,7 @@ FoamFile
 // internalStart flatStart openStart multipleStart
 0 0 0 4
 // normals
-2((0 0 -1) (-2.77556e-17 5.55112e-17 -1))
+2{(0 0 -1)}
 // normal volume types
 
 2
