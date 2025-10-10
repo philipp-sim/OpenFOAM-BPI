@@ -1,0 +1,139 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       polyBoundaryMesh;
+    location    "constant/polyMesh";
+    object      boundary;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+8
+(
+    atmosphere_ground
+    {
+        type            wall;
+        inGroups        List<word> 
+2
+(
+atmosphere
+wall
+)
+;
+        nFaces          276;
+        startFace       737130;
+    }
+    atmosphere_outlet
+    {
+        type            patch;
+        inGroups        List<word> 1(atmosphere);
+        nFaces          5219;
+        startFace       737406;
+    }
+    walls
+    {
+        type            wall;
+        inGroups        List<word> 
+2
+(
+staticWalls
+wall
+)
+;
+        nFaces          7453;
+        startFace       742625;
+    }
+    window
+    {
+        type            wall;
+        inGroups        List<word> 
+2
+(
+staticWalls
+wall
+)
+;
+        nFaces          22710;
+        startFace       750078;
+    }
+    glass_inside_master
+    {
+        type            mappedWall;
+        inGroups        List<word> 
+3
+(
+wall
+mapped
+glass_inside
+)
+;
+        nFaces          3264;
+        startFace       772788;
+        neighbourRegion region0;
+        neighbourPatch  glass_inside_slave;
+        transformType   none;
+        method          nearest;
+    }
+    glass_inside_slave
+    {
+        type            mappedWall;
+        inGroups        List<word> 
+3
+(
+wall
+mapped
+glass_inside
+)
+;
+        nFaces          3264;
+        startFace       776052;
+        neighbourRegion region0;
+        neighbourPatch  glass_inside_master;
+        transformType   none;
+        method          nearest;
+    }
+    glass_outside_master
+    {
+        type            mappedWall;
+        inGroups        List<word> 
+3
+(
+wall
+mapped
+glass_outside
+)
+;
+        nFaces          4676;
+        startFace       779316;
+        neighbourRegion region0;
+        neighbourPatch  glass_outside_slave;
+        transformType   none;
+        method          nearest;
+    }
+    glass_outside_slave
+    {
+        type            mappedWall;
+        inGroups        List<word> 
+3
+(
+wall
+mapped
+glass_outside
+)
+;
+        nFaces          4676;
+        startFace       783992;
+        neighbourRegion region0;
+        neighbourPatch  glass_outside_master;
+        transformType   none;
+        method          nearest;
+    }
+)
+
+// ************************************************************************* //
