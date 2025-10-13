@@ -1,0 +1,73 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      createBafflesDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+internalFacesOnly true;
+
+baffles
+{
+    glass_inside
+    {
+        type        faceZone;
+        zoneName    glass_inside;
+        
+        patches
+        {
+            master
+            {
+                name            glass_inside_master;
+                type            mappedWall;      
+                sampleMode      nearest;
+                sampleRegion    region0;
+                samplePatch     glass_inside_slave;
+            }
+            slave
+            {
+                name            glass_inside_slave;
+                type            mappedWall;      
+                sampleMode      nearest;
+                sampleRegion    region0;
+                samplePatch     glass_inside_master;
+            }
+        }
+    }
+
+    glass_outside
+    {
+        type        faceZone;
+        zoneName    glass_outside;
+        
+        patches
+        {
+            master
+            {
+                name            glass_outside_master;
+                type            mappedWall;      
+                sampleMode      nearest;
+                sampleRegion    region0;
+                samplePatch     glass_outside_slave;
+            }
+            slave
+            {
+                name            glass_outside_slave;
+                type            mappedWall;      
+                sampleMode      nearest;
+                sampleRegion    region0;
+                samplePatch     glass_outside_master;
+            }
+        }
+    }
+}
+
+// ************************************************************************* //
