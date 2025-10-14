@@ -49,6 +49,12 @@ geometry
         type        triSurfaceMesh;
         file        "glass_outside.stl";
     }
+    
+    glass_inside
+    {
+        type        triSurfaceMesh;
+        file        "glass_inside.stl";
+    }
 
     outflow
     {
@@ -93,6 +99,10 @@ castellatedMeshControls
         }
         {
             file        "glass_outside.eMesh";
+            level       4;
+        }
+        {
+            file        "glass_inside.eMesh";
             level       4;
         }
         {
@@ -146,7 +156,7 @@ castellatedMeshControls
         
         glass_outside
         {
-            level       (5 7);
+            level       (3 5);
             faceZone    glass_outside;
             cellZone    glass_outside;
             cellZoneInside inside;
@@ -157,6 +167,16 @@ castellatedMeshControls
                 inGroups        (glassWalls);
             }
         }
+        
+        glass_inside
+        {
+            level       (3 5);
+            patchInfo
+            {
+                type wall;
+                inGroups (staticWalls);
+            }
+        }      
         
         outflow
         {

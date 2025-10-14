@@ -20,6 +20,7 @@ surfaces
     "atmosphere_ground.stl"
     "atmosphere_outlet.stl"
     "glass_outside.stl"
+    "glass_inside.stl"
     "outflow.stl"
 );
 
