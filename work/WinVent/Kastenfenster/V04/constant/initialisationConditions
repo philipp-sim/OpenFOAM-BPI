@@ -18,7 +18,7 @@ FoamFile
 
 internalField
     {
-        T                   305.15;
+        T                   293.15;
         CO2		    400;
         relHumidity	    0.50;
         specificHumidity    0.01531;
@@ -27,7 +27,7 @@ internalField
 
 atmosphere
     {
-        T                   290;
+        T                   273.15;
         CO2		    400;
         relHumidity	    0.80;
         specificHumidity    0.00961;

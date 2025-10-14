@@ -37,12 +37,17 @@ boundaryField
         value           $internalField;
     }
 
-    movingWalls
+    glassWalls
     {
         $staticWalls;
     }
 
-    nonCouple
+    glass_outside_master
+    {
+        type            zeroGradient;
+    }
+
+    glass_outside_slave
     {
         type            zeroGradient;
     }

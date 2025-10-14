@@ -30,10 +30,55 @@ boundaryField
         inlet	    	uniform $!atmosphere/T;
     }
 
-    /*staticWalls
+    glass_outside_master
+    {
+        type   compressible::thermalBaffle1D<eConstSolidThermoPhysics>;
+        neighbourPatch  glass_outside_slave;
+        thickness       uniform 0.006;  // Glasdicke [m]
+        qs              uniform 0;     // Wärmefluss [W/m^2] - 0 für kein Heizen
+        qr              none;
+        qrRelaxation    1;
+        // Solid thermo für Glas
+        specie
+        {
+            molWeight       60;  // Mittleres Molekulargewicht für Glas
+        }
+        transport
+        {
+            kappa           0.0021;  // Wärmeleitfähigkeit [W/m/K] U-Value 0.35W/m²K * 0.006m = 0.0021W/mK
+        }
+        thermodynamics
+        {
+            hf              0;
+            Cv              750;  // Spezifische Wärmekapazität [J/kg/K]
+        }
+        equationOfState
+        {
+            rho             2500; // Dichte [kg/m^3]
+        }
+
+        value           uniform 293;  // Anfangstemperatur [K]
+    }
+
+    glass_outside_slave
+    {
+        type   compressible::thermalBaffle1D<eConstSolidThermoPhysics>;
+        neighbourPatch  glass_outside_master;
+        qr              none;
+        relaxation      1;
+        value           uniform 293;  // Anfangstemperatur [K]
+    }
+
+    staticWalls
     {
         type            fixedValue;
-	    value uniform $!surface/T;
+	    value           uniform $!surface/T;
+    }
+
+    /*glass_outside
+    {
+        type            fixedValue;
+        value           uniform $!surface/T; // K
     }*/
 
     /*staticWalls

@@ -35,14 +35,10 @@ boundaryField
         value           $internalField;
     }
 
-    movingWalls
+
+    glassWalls
     {
         $staticWalls;
-    }
-
-    nonCouple
-    {
-        type            zeroGradient;
     }
 
     ".*"

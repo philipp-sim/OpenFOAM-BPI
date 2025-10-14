@@ -42,9 +42,28 @@ boundaryField
         value           uniform (0 0 0);
     }
 
+    glass_outside_master
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
+    glass_outside_slave
+    {
+        type            fixedValue;
+        value           uniform (0 0 0);
+    }
+
     outflow
     {
-        type            zeroGradient;
+        //type            zeroGradient;
+        type            fixedValue;
+        value           uniform (0 0.2778 0);
+
+        // value should be 20m³/h through the window
+        // Outflow area = 0.02 m2 (1m * 0.02m)
+        // velocity = flowrate/area = 20/3600 / 0.02 = 0.2778 m/s
+
     }
 
     ".*"

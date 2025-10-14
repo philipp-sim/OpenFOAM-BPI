@@ -37,6 +37,21 @@ boundaryField
         value           $internalField;
     }
 
+    glassWalls
+    {
+        $staticWalls;
+    }
+
+    glass_outside_master
+    {
+        type            zeroGradient;
+    }
+
+    glass_outside_slave
+    {
+        type            zeroGradient;
+    }
+
     ".*"
     {
         type            zeroGradient;

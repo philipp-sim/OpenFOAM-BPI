@@ -30,21 +30,24 @@ boundaryField
         value           uniform 0;
     }
 
-    movingWalls
+    staticWalls
+    {
+        type            nutkWallFunction;
+        value           uniform 0;
+    }
+    
+    glassWalls
     {
         type            nutkWallFunction;
         value           uniform 0;
     }
 
-    staticWalls
+    outflow
     {
-        $movingWalls;
+        type            calculated;
+        value           uniform 0;
     }
 
-    nonCouple
-    {
-        type            zeroGradient;
-    }
 
     ".*"
     {
