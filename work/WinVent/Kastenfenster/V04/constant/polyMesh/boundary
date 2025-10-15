@@ -14,7 +14,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-10
+9
 (
     atmosphere_ground
     {
@@ -26,15 +26,15 @@ atmosphere
 wall
 )
 ;
-        nFaces          280;
-        startFace       38690;
+        nFaces          504;
+        startFace       248110;
     }
     atmosphere_outlet
     {
         type            patch;
         inGroups        List<word> 1(atmosphere);
-        nFaces          896;
-        startFace       38970;
+        nFaces          1558;
+        startFace       248614;
     }
     walls
     {
@@ -46,35 +46,22 @@ staticWalls
 wall
 )
 ;
-        nFaces          1307;
-        startFace       39866;
+        nFaces          2802;
+        startFace       250172;
     }
     window
     {
         type            wall;
         inGroups        List<word> 1(wall);
-        nFaces          1134;
-        startFace       41173;
-    }
-    glass_inside
-    {
-        type            wall;
-        inGroups        List<word> 
-2
-(
-staticWalls
-wall
-)
-;
-        nFaces          1801;
-        startFace       42307;
+        nFaces          2896;
+        startFace       252974;
     }
     outflow
     {
         type            patch;
         inGroups        List<word> 1(outflow);
         nFaces          32;
-        startFace       44108;
+        startFace       255870;
     }
     glass_inside_master
     {
@@ -87,8 +74,8 @@ mapped
 glass_inside
 )
 ;
-        nFaces          0;
-        startFace       44140;
+        nFaces          3968;
+        startFace       255902;
         neighbourRegion region0;
         neighbourPatch  glass_inside_slave;
         transformType   none;
@@ -105,8 +92,8 @@ mapped
 glass_inside
 )
 ;
-        nFaces          0;
-        startFace       44140;
+        nFaces          3968;
+        startFace       259870;
         neighbourRegion region0;
         neighbourPatch  glass_inside_master;
         transformType   none;
@@ -123,8 +110,8 @@ mapped
 glass_outside
 )
 ;
-        nFaces          1034;
-        startFace       44140;
+        nFaces          3904;
+        startFace       263838;
         neighbourRegion region0;
         neighbourPatch  glass_outside_slave;
         transformType   none;
@@ -141,8 +128,8 @@ mapped
 glass_outside
 )
 ;
-        nFaces          1034;
-        startFace       45174;
+        nFaces          3904;
+        startFace       267742;
         neighbourRegion region0;
         neighbourPatch  glass_outside_master;
         transformType   none;

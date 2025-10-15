@@ -35,10 +35,15 @@ boundaryField
         value           $internalField;
     }
 
-
-    glassWalls
+    glass
     {
         $staticWalls;
+    }
+
+    outflow
+    {
+        type            fixedValue;
+        value           $internalField;
     }
 
     ".*"

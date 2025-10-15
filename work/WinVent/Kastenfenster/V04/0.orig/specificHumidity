@@ -36,16 +36,6 @@ boundaryField
 
     staticWalls
     {
-    type            zeroGradient;
-    }
-
-    movingWalls
-    {
-    $staticWalls;
-    }
-
-    nonCouple
-    {
         type            zeroGradient;
     }
 

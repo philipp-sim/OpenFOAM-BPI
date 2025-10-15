@@ -37,9 +37,17 @@ boundaryField
         value           $internalField;
     }
 
-    glassWalls
+    glass
     {
         $staticWalls;
+    }
+
+    outflow
+    {
+        type            prghTotalHydrostaticPressure;
+        p0              $internalField;
+        gamma           1;
+        value           $internalField;
     }
 
     ".*"

@@ -37,24 +37,9 @@ boundaryField
         value           uniform 0;
     }
 	
-    glassWalls
+    glass
     {
         $staticWalls;
-    }
-
-    glass_outside_master
-    {
-        type            zeroGradient;
-    }
-
-    glass_outside_slave
-    {
-        type            zeroGradient;
-    }
-
-    nonCouple
-    {
-        type            zeroGradient;
     }
 
     ".*"

@@ -32,26 +32,17 @@ boundaryField
 
     staticWalls
     {
-        type            fixedValue;
-        value           uniform (0 0 0);
+        type            noSlip;
     }
 
     window
     {
-        type            fixedValue;
-        value           uniform (0 0 0);
+        type            noSlip;
     }
 
-    glass_outside_master
+    glass
     {
-        type            fixedValue;
-        value           uniform (0 0 0);
-    }
-
-    glass_outside_slave
-    {
-        type            fixedValue;
-        value           uniform (0 0 0);
+        type            noSlip;
     }
 
     outflow
