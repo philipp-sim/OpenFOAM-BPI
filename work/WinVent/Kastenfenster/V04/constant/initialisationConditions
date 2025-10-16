@@ -36,7 +36,7 @@ atmosphere
 
 surface
     {
-        T                   593.15;
+        T                   293.15;
     }
 
 
