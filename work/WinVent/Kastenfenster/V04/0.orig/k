@@ -31,21 +31,31 @@ boundaryField
         value           $inletValue;
     }
 
+    outflow
+    {
+        type            inletOutlet;
+        inletValue      $internalField;
+        value           $inletValue;
+    }
+
     staticWalls
     {
         type            kqRWallFunction;
         value           $internalField;
     }
 
-    glass
+    "(glass_inside_master|glass_inside_slave|glass_outside_master|glass_outside_slave)"
     {
-        $staticWalls;
+        type            kqRWallFunction;
+        value           $internalField;
+        //type            kLowReWallFunction;
+        //value           uniform 1e-10;
     }
 
-    ".*"
+    /*".*"
     {
         type            zeroGradient;
-    }
+    }*/
 }
 
 // ************************************************************************* //

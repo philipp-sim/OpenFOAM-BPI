@@ -29,27 +29,28 @@ boundaryField
         value           $internalField;
     }
 
-    staticWalls
-    {
-        type            calculated;
-        value           $internalField;
-    }
-
-    glass
-    {
-        $staticWalls;
-    }
-
     outflow
     {
         type            calculated;
         value           $internalField;
     }
 
-    ".*"
+    staticWalls
+    {
+        type            calculated;
+        value           $internalField;
+    }
+
+    "(glass_inside_master|glass_inside_slave|glass_outside_master|glass_outside_slave)"
+    {
+        type            calculated;
+        value           $internalField;
+    }
+
+    /*".*"
     {
         type            zeroGradient;
-    }
+    }*/
 }
 
 // ************************************************************************* //

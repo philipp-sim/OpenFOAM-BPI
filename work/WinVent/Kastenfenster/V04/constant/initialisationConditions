@@ -27,7 +27,7 @@ internalField
 
 atmosphere
     {
-        T                   293.15;
+        T                   273.15;
         CO2		    400;
         relHumidity	    0.80;
         specificHumidity    0.00961;
@@ -36,7 +36,7 @@ atmosphere
 
 surface
     {
-        T                   293.15;
+        T                   593.15;
     }
 
 

@@ -38,11 +38,11 @@ geometry
         file        "walls.stl";
     }
 
-    window
+    /*window
     {
         type        triSurfaceMesh;
         file        "window.stl";
-    }
+    }*/
     
     glass_outside
     {
@@ -55,7 +55,7 @@ geometry
         type        triSurfaceMesh;
         file        "glass_inside.stl";
     }
-
+    
     outflow
     {
         type        triSurfaceMesh;
@@ -136,7 +136,7 @@ castellatedMeshControls
         
         walls
         {
-            level       (2 4); //
+            level       (3 4); 
             patchInfo
             {
                 type wall;
@@ -164,7 +164,7 @@ castellatedMeshControls
             patchInfo
             {
                 type            baffle;
-                inGroups        (glassWalls);
+                inGroups        (glass);
             }
         }
         

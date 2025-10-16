@@ -30,29 +30,28 @@ boundaryField
         value           uniform 0;
     }
 
-    staticWalls
-    {
-        type            nutkWallFunction;
-        value           uniform 0;
-    }
-    
-    glass
-    {
-        type            nutkWallFunction;
-        value           uniform 0;
-    }
-
     outflow
     {
         type            calculated;
         value           uniform 0;
     }
 
+    staticWalls
+    {
+        type            nutkWallFunction;
+        value           uniform 0;
+    }
+    
+    "(glass_inside_master|glass_inside_slave|glass_outside_master|glass_outside_slave)"
+    {
+        type            nutkWallFunction;
+        value           uniform 0;
+    }
 
-    ".*"
+    /*".*"
     {
         type            zeroGradient;
-    }
+    }*/
 }
 
 // ************************************************************************* //

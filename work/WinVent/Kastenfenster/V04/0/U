@@ -30,26 +30,11 @@ boundaryField
         value           $internalField;
     }
 
-    staticWalls
-    {
-        type            noSlip;
-    }
-
-    window
-    {
-        type            noSlip;
-    }
-
-    glass
-    {
-        type            noSlip;
-    }
-
     outflow
     {
         //type            zeroGradient;
         type            fixedValue;
-        value           uniform (0 0.2778 0);
+        value           uniform (0 0 0);
 
         // value should be 20m³/h through the window
         // Outflow area = 0.02 m2 (1m * 0.02m)
@@ -57,10 +42,20 @@ boundaryField
 
     }
 
-    ".*"
+    staticWalls
+    {
+        type            noSlip;
+    }
+
+    "(glass_inside_master|glass_inside_slave|glass_outside_master|glass_outside_slave)"
+    {
+        type            noSlip;
+    }
+
+    /*".*"
     {
         type            zeroGradient;
-    }
+    }*/
 }
 
 // ************************************************************************* //

@@ -30,6 +30,12 @@ boundaryField
         value           uniform 0;
     }
 
+    outflow
+    {
+	    type            calculated;
+        value           uniform 0;
+    }
+
     staticWalls
     {
         type            compressible::alphatWallFunction;
@@ -37,15 +43,19 @@ boundaryField
         value           uniform 0;
     }
 	
-    glass
+    
+    "(glass_inside_master|glass_inside_slave|glass_outside_master|glass_outside_slave)"
     {
-        $staticWalls;
+        type            compressible::alphatJayatillekeWallFunction;
+        Prt             0.85; //10; //0.85 
+        value           uniform 0;
     }
 
+    /*
     ".*"
     {
         type            zeroGradient;
-    }
+    }*/
 }
 
 // ************************************************************************* //

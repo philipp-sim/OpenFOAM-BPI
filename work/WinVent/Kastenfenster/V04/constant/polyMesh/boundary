@@ -14,7 +14,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-9
+8
 (
     atmosphere_ground
     {
@@ -46,15 +46,8 @@ staticWalls
 wall
 )
 ;
-        nFaces          2802;
+        nFaces          5698;
         startFace       250172;
-    }
-    window
-    {
-        type            wall;
-        inGroups        List<word> 1(wall);
-        nFaces          2896;
-        startFace       252974;
     }
     outflow
     {

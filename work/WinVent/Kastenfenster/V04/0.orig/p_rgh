@@ -37,11 +37,6 @@ boundaryField
         value           $internalField;
     }
 
-    glass
-    {
-        $staticWalls;
-    }
-
     outflow
     {
         type            prghTotalHydrostaticPressure;
@@ -50,10 +45,16 @@ boundaryField
         value           $internalField;
     }
 
-    ".*"
+    "(glass_inside_master|glass_inside_slave|glass_outside_master|glass_outside_slave)"
+    {
+        type            fixedFluxPressure;
+        value           $internalField;
+    }
+
+    /*".*"
     {
         type            zeroGradient;
-    }
+    }*/
 }
 
 // ************************************************************************* //

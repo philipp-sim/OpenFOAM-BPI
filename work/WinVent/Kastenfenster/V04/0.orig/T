@@ -42,12 +42,116 @@ boundaryField
         type            fixedValue;
 	    value           uniform $!surface/T;
     }
-
-    glass
+    
+    window
     {
         type            fixedValue;
-        value           uniform $!surface/T;
+	    value           uniform $!surface/T;
     }
+
+    glassWalls
+    {
+        type            compressible::thermalBaffle1D<eConstSolidThermoPhysics>;
+        thickness       uniform 0.006;
+        qs              uniform 0;
+        qr              none;
+        qrRelaxation    1;
+        
+        specie
+        {
+            molWeight       60.08;
+        }
+        transport
+        {
+            kappa           0.03408;
+        }
+        thermodynamics
+        {
+            hf              0;
+            Cv              840;
+        }
+        equationOfState
+        {
+            rho             2500;
+        }
+    }
+    
+    glass_inside_master
+    {
+        $glassWalls;
+        neighbourPatch  glass_inside_slave;
+        value           uniform $!surface/T; 
+    }
+    
+    glass_inside_slave
+    {
+        $glassWalls;
+        neighbourPatch  glass_inside_master;
+        value           uniform $!surface/T; 
+    } 
+    
+    glass_outside_master
+    {
+        $glassWalls;
+        neighbourPatch  glass_outside_slave;
+        value           uniform $!atmosphere/T;
+    }
+    
+    glass_outside_slave
+    {
+        $glassWalls;
+        neighbourPatch  glass_outside_master;
+        value           uniform $!atmosphere/T;
+    } 
+
+    /*glass_outside_master
+    {
+        type   compressible::thermalBaffle1D<eConstSolidThermoPhysics>;
+
+        neighbourPatch  glass_outside_slave;
+
+        thickness       uniform 0.005;  // Thickness [m]
+        qs              uniform 100;    // Source heat flux [W/m^2]
+
+        qr              none;
+        qrRelaxation    1;
+
+        // Solid thermo
+        specie
+        {
+            molWeight       20;
+        }
+        transport
+        {
+            kappa           0.1;
+        }
+        thermodynamics
+        {
+            hf              0;
+            Cv              10;
+        }
+        equationOfState
+        {
+            rho             10000;
+        }
+
+        value           uniform 1000;
+    }
+
+    glass_outside_slave
+    {
+        type   compressible::thermalBaffle1D<eConstSolidThermoPhysics>;
+
+        neighbourPatch  glass_outside_master;
+
+        qr              none;
+        relaxation      1;
+
+        value           uniform 1000;
+    }*/
+
+
+
 
     /*staticWalls
     {

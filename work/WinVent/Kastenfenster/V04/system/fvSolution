@@ -71,9 +71,9 @@ PIMPLE
     momentumPredictor   yes;
     transonic           no;
     correctMeshPhi      yes;
-    nOuterCorrectors    3;
-    nCorrectors         2; //1;
-    nNonOrthogonalCorrectors 1;//0;
+    nOuterCorrectors    4; //3
+    nCorrectors         3; //2;
+    nNonOrthogonalCorrectors 1; 
 
     hydrostaticInitialisation yes;
     nHydrostaticCorrectors 5;
@@ -83,7 +83,7 @@ relaxationFactors
 {
     equations
     {
-        "(U|h|k|epsilon|omega).*" 0.7; //1;
+        "(U|h|k|epsilon|omega).*" 0.5; //1;
     }
 }
 
