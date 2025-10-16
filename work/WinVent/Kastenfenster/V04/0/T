@@ -84439,7 +84439,7 @@ boundaryField
     walls
     {
         type            fixedValue;
-        value           uniform 593.15;
+        value           uniform 293.15;
     }
     outflow
     {
