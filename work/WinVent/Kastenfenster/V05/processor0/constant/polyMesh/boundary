@@ -1,0 +1,183 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       polyBoundaryMesh;
+    location    "constant/polyMesh";
+    object      boundary;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+13
+(
+    atmosphere_ground
+    {
+        type            wall;
+        inGroups        List<word> 
+2
+(
+atmosphere
+wall
+)
+;
+        nFaces          352;
+        startFace       29300;
+    }
+    atmosphere_outlet
+    {
+        type            patch;
+        inGroups        List<word> 1(atmosphere);
+        nFaces          99;
+        startFace       29652;
+    }
+    walls
+    {
+        type            wall;
+        inGroups        List<word> 
+2
+(
+staticWalls
+wall
+)
+;
+        nFaces          381;
+        startFace       29751;
+    }
+    outflow
+    {
+        type            patch;
+        inGroups        List<word> 1(outflow);
+        nFaces          0;
+        startFace       30132;
+    }
+    glass_inside_master
+    {
+        type            mappedWall;
+        inGroups        List<word> 
+3
+(
+wall
+mapped
+glass_inside
+)
+;
+        nFaces          0;
+        startFace       30132;
+        neighbourRegion region0;
+        neighbourPatch  glass_inside_slave;
+        transformType   none;
+        method          nearest;
+    }
+    glass_inside_slave
+    {
+        type            mappedWall;
+        inGroups        List<word> 
+3
+(
+wall
+mapped
+glass_inside
+)
+;
+        nFaces          0;
+        startFace       30132;
+        neighbourRegion region0;
+        neighbourPatch  glass_inside_master;
+        transformType   none;
+        method          nearest;
+    }
+    glass_outside_master
+    {
+        type            mappedWall;
+        inGroups        List<word> 
+3
+(
+wall
+mapped
+glass_outside
+)
+;
+        nFaces          460;
+        startFace       30132;
+        neighbourRegion region0;
+        neighbourPatch  glass_outside_slave;
+        transformType   none;
+        method          nearest;
+    }
+    glass_outside_slave
+    {
+        type            mappedWall;
+        inGroups        List<word> 
+3
+(
+wall
+mapped
+glass_outside
+)
+;
+        nFaces          1844;
+        startFace       30592;
+        neighbourRegion region0;
+        neighbourPatch  glass_outside_master;
+        transformType   none;
+        method          nearest;
+    }
+    procBoundary0to1
+    {
+        type            processor;
+        inGroups        List<word> 1(processor);
+        nFaces          368;
+        startFace       32436;
+        matchTolerance  0.0001;
+        myProcNo        0;
+        neighbProcNo    1;
+    }
+    procBoundary0to2
+    {
+        type            processor;
+        inGroups        List<word> 1(processor);
+        nFaces          233;
+        startFace       32804;
+        matchTolerance  0.0001;
+        myProcNo        0;
+        neighbProcNo    2;
+    }
+    procBoundary0to3
+    {
+        type            processor;
+        inGroups        List<word> 1(processor);
+        nFaces          277;
+        startFace       33037;
+        matchTolerance  0.0001;
+        myProcNo        0;
+        neighbProcNo    3;
+    }
+    procBoundary0to6
+    {
+        type            processor;
+        inGroups        List<word> 1(processor);
+        nFaces          104;
+        startFace       33314;
+        matchTolerance  0.0001;
+        myProcNo        0;
+        neighbProcNo    6;
+    }
+    procBoundary0to7
+    {
+        type            processor;
+        inGroups        List<word> 1(processor);
+        nFaces          1560;
+        startFace       33418;
+        matchTolerance  0.0001;
+        myProcNo        0;
+        neighbProcNo    7;
+    }
+)
+
+// ************************************************************************* //
