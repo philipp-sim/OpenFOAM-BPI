@@ -37,6 +37,7 @@ divSchemes
     div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
     div(phi,CO2relativdensity)  bounded Gauss upwind;
     div(phi,specificHumidity) bounded Gauss upwind;
+    div(Ji,Ii_h)    bounded Gauss linearUpwind grad(Ii_h);
 }
 
 laplacianSchemes

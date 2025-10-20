@@ -43,6 +43,16 @@ solvers
         $p_rgh;
     }
 
+    "Ii.*"
+    {
+        solver              GAMG;
+        tolerance           1e-4;
+        relTol              0;
+        smoother            symGaussSeidel;
+        maxIter             5;
+        nPostSweeps         1;
+    }
+
     MeshPhi
     {
         solver          smoothSolver;
