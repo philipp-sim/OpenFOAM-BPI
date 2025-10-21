@@ -104,7 +104,33 @@ boundaryField
         value           uniform $!atmosphere/T;
     } 
 
-    
+    glass_inside_top_master
+    {
+        $glassWalls;
+        neighbourPatch  glass_inside_top_slave;
+        value           $internalField;
+    }
+
+    glass_inside_top_slave
+    {
+        $glassWalls;
+        neighbourPatch  glass_inside_top_master;
+        value           $internalField;
+    }
+
+    glass_inside_bottom_master
+    {
+        $glassWalls;
+        neighbourPatch  glass_inside_bottom_slave;
+        value           $internalField;
+    }
+
+    glass_inside_bottom_slave
+    {
+        $glassWalls;
+        neighbourPatch  glass_inside_bottom_master;
+        value           $internalField;
+    }
 
     /*".*"
     {

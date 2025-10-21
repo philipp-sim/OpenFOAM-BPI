@@ -34,30 +34,12 @@ boundaryField
         value           uniform 0;
     }
 
-    glass_outside_top_master
+    "glass_.*"
     {
         type            fixedValue;
-        value           uniform 200;  // Strahlungswärmestrom auf der Außenseite
+        value           uniform 0;  // Strahlungswärmestrom auf der Außenseite
     }
-
-    glass_outside_top_slave
-    {
-        type            fixedValue;
-        value           uniform 0;    // Keine Strahlung auf der Innenseite
-    }
-
-    glass_outside_bottom_master
-    {
-        type            fixedValue;
-        value           uniform 200;  // Strahlungswärmestrom auf der Außenseite
-    }
-
-    glass_outside_bottom_slave
-    {
-        type            fixedValue;
-        value           uniform 0;    // Keine Strahlung auf der Innenseite
-    }
-
+    
     staticWalls
     {
         type            fixedValue;

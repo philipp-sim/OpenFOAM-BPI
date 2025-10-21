@@ -68,6 +68,61 @@ baffles
             }
         }
     }    
-}
 
+
+
+    glass_inside_top
+    {
+        type        faceZone;
+        zoneName    glass_inside_top;
+        
+        patches
+        {
+            master
+            {
+                name            glass_inside_top_master;
+                type            mappedWall;      
+                sampleMode      nearest;
+                sampleRegion    region0;
+                samplePatch     glass_inside_top_slave;
+            }
+            slave
+            {
+                name            glass_inside_top_slave;
+                type            mappedWall;      
+                sampleMode      nearest;
+                sampleRegion    region0;
+                samplePatch     glass_inside_top_master;
+            }
+        }
+    }
+    
+    glass_inside_bottom
+    {
+        type        faceZone;
+        zoneName    glass_inside_bottom;
+        
+        patches
+        {
+            master
+            {
+                name            glass_inside_bottom_master;
+                type            mappedWall;      
+                sampleMode      nearest;
+                sampleRegion    region0;
+                samplePatch     glass_inside_bottom_slave;
+            }
+            slave
+            {
+                name            glass_inside_bottom_slave;
+                type            mappedWall;      
+                sampleMode      nearest;
+                sampleRegion    region0;
+                samplePatch      glass_inside_bottom_master;
+            }
+        }
+    } 
+    
+
+}    
 // ************************************************************************* //

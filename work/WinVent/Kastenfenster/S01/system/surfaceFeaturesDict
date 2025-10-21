@@ -21,7 +21,8 @@ surfaces
     "atmosphere_outlet.stl"
     "glass_outside_top.stl"
     "glass_outside_bottom.stl"
-    //"glass_inside.stl"
+    "glass_inside_top.stl"
+    "glass_inside_bottom.stl"
     "outflow.stl"
 );
 

@@ -57,11 +57,17 @@ geometry
     }
     
 
-    /*glass_inside
+    glass_inside_top
     {
         type        triSurfaceMesh;
-        file        "glass_inside.stl";
-    }*/
+        file        "glass_inside_top.stl";
+    }
+
+    glass_inside_bottom
+    {
+        type        triSurfaceMesh;
+        file        "glass_inside_bottom.stl";
+    }    
     
     outflow
     {
@@ -112,10 +118,14 @@ castellatedMeshControls
             file        "glass_outside_bottom.eMesh";
             level       4;
         }
-        /*{
-            file        "glass_inside.eMesh";
+        {
+            file        "glass_inside_top.eMesh";
             level       4;
-        }*/
+        }
+        {
+            file        "glass_outside_bottom.eMesh";
+            level       4;
+        }
         {
             file        "outflow.eMesh";
             level       2;
@@ -193,6 +203,36 @@ castellatedMeshControls
             }
         }
         
+
+
+        glass_inside_top
+        {
+            level       (5 7);
+            faceZone    glass_inside_top;
+            cellZone    glass_inside_top;
+            cellZoneInside inside;
+            
+            patchInfo
+            {
+                type            baffle;
+                inGroups        (glass);
+            }
+        }
+        
+        glass_inside_bottom
+        {
+            level       (5 7);
+            faceZone    glass_inside_bottom;
+            cellZone    glass_inside_bottom;
+            cellZoneInside inside;
+            
+            patchInfo
+            {
+                type            baffle;
+                inGroups        (glass);
+            }
+        }
+
         outflow
         {
             level       (3 4); //
