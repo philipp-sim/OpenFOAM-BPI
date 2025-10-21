@@ -1,0 +1,16 @@
+solid OBJECT
+  facet normal 0 -0 1
+    outer loop
+      vertex 2 -0.25532293319702148 0
+      vertex 0 -0.25532293319702148 0
+      vertex 0 -1 0
+    endloop
+  endfacet
+  facet normal 0 -0 1
+    outer loop
+      vertex 2 -0.25532293319702148 0
+      vertex 0 -1 0
+      vertex 2 -1 0
+    endloop
+  endfacet
+endsolid OBJECT

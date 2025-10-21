@@ -1,0 +1,19 @@
+# Wavefront OBJ file written 2025-10-21T18:17:53
+o glass_outside_bottom_edgeMesh
+
+# points : 4
+# lines  : 4
+
+# <points count="4">
+v 1.53234 -0.218991 0.679663
+v 0.467663 -0.218991 0.679663
+v 0.467663 -0.218991 1.686
+v 1.53234 -0.218991 1.686
+# </points>
+
+# <edges count="4">
+l 1 2
+l 2 3
+l 3 4
+l 4 1
+# </edges>

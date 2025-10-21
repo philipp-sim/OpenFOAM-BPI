@@ -1,0 +1,31 @@
+# Wavefront OBJ file written 2025-10-21T18:17:53
+o outflow_edgeMesh
+
+# points : 10
+# lines  : 10
+
+# <points count="10">
+v 2 1 0.1
+v 2 1 0
+v 0 1 0.1
+v 0 1 0
+v 1.5 1 0.1
+v 1.5 1 0
+v 1 1 0.1
+v 1 1 0
+v 0.5 1 0.1
+v 0.5 1 0
+# </points>
+
+# <edges count="10">
+l 5 1
+l 1 2
+l 2 6
+l 7 5
+l 6 8
+l 9 7
+l 8 10
+l 3 9
+l 10 4
+l 4 3
+# </edges>
