@@ -342757,7 +342757,7 @@ boundaryField
         }
         transport
         {
-            kappa           0.03408;
+            kappa           1;
         }
         thermodynamics
         {
@@ -342784,7 +342784,7 @@ boundaryField
         }
         transport
         {
-            kappa           0.03408;
+            kappa           1;
         }
         thermodynamics
         {
@@ -342811,7 +342811,7 @@ boundaryField
         }
         transport
         {
-            kappa           0.03408;
+            kappa           1;
         }
         thermodynamics
         {
@@ -342838,7 +342838,7 @@ boundaryField
         }
         transport
         {
-            kappa           0.03408;
+            kappa           1;
         }
         thermodynamics
         {
@@ -342865,7 +342865,7 @@ boundaryField
         }
         transport
         {
-            kappa           0.03408;
+            kappa           1;
         }
         thermodynamics
         {
@@ -342892,7 +342892,7 @@ boundaryField
         }
         transport
         {
-            kappa           0.03408;
+            kappa           1;
         }
         thermodynamics
         {
@@ -342919,7 +342919,7 @@ boundaryField
         }
         transport
         {
-            kappa           0.03408;
+            kappa           1;
         }
         thermodynamics
         {
@@ -342946,7 +342946,7 @@ boundaryField
         }
         transport
         {
-            kappa           0.03408;
+            kappa           1;
         }
         thermodynamics
         {

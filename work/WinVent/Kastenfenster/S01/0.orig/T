@@ -51,23 +51,23 @@ boundaryField
     glassWalls
     {
         type            compressible::thermalBaffle1D<eConstSolidThermoPhysics>;
-        thickness       uniform 0.006;
+        thickness       uniform 0.006; // 6mm floatglass
         qs              uniform 0;
         qr              none;
         qrRelaxation    1;
         
         specie
         {
-            molWeight       60.08;
+            molWeight       60.08; //molweight of SiO2
         }
         transport
         {
-            kappa           0.03408;
+            kappa           1; // W/(m K)
         }
         thermodynamics
         {
             hf              0;
-            Cv              840;
+            Cv              840; // specific heat capacity [J/(kg K)
         }
         equationOfState
         {
