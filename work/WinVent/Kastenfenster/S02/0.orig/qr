@@ -1,0 +1,60 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      qr;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [1 0 -3 0 0 0 0];  // W/m²
+
+internalField   uniform 200;  // Fester Strahlungswärmestrom [W/m²]
+
+boundaryField
+{
+    #includeEtc "caseDicts/setConstraintTypes"
+
+    atmosphere
+    {
+        type            calculated;
+        value           uniform 0;
+    }
+
+    outflow
+    {
+        type            calculated;
+        value           uniform 0;
+    }
+
+    "glass_.*"
+    {
+        type            fixedValue;
+        value           uniform 0;  // Strahlungswärmestrom auf der Außenseite
+    }
+    
+    staticWalls
+    {
+        type            fixedValue;
+        value           uniform 0;
+    }
+
+    window 
+    {
+        $staticWalls;
+    }
+
+    /*".*"
+    {
+        type            zeroGradient;
+    }*/
+}
+
+// ************************************************************************* //

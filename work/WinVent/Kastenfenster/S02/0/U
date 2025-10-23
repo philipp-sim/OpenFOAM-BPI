@@ -1,0 +1,66 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    location    "0";
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    #includeEtc "caseDicts/setConstraintTypes"
+
+    atmosphere
+    {
+        type            pressureInletOutletVelocity;
+        inletValue      $internalField;
+        value           $internalField;
+    }
+
+    outflow
+    {
+        //type            zeroGradient;
+        type            fixedValue;
+        value           uniform (0 0.00694444 0);
+
+        // value should be 5m³/h through the window
+        // Outflow area = 0.2 m2 (2m * 0.1m)
+        // velocity = flowrate/area = 5/3600 / 0.20 = 0.00694444 m/s
+
+    }
+
+    staticWalls
+    {
+        type            noSlip;
+    }
+
+    window 
+    {
+        $staticWalls;
+    }
+
+    "glass_.*"
+    {
+        type            noSlip;
+    }
+   
+    /*".*"
+    {
+        type            zeroGradient;
+    }*/
+}
+
+// ************************************************************************* //

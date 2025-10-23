@@ -1,0 +1,135 @@
+# Box Window (Kastenfenster) Simulation V04
+
+## Overview
+This OpenFOAM 12 case simulates the thermal performance and flow dynamics of a box window system (double window with intermediate cavity). The simulation models heat transfer through glass, natural convection in the cavity, and controlled air exchange using the **fluid solver** from OpenFOAM 12.
+
+## Solver
+- **Type:** `fluid` (OpenFOAM 12 multiphase/compressible transient solver)
+- **Features:** Buoyancy-driven flow, compressible thermophysics, turbulence modeling
+- **Time:** Transient with PIMPLE algorithm
+
+## Geometry
+- **Box Window System:** Inner and outer glazing with air cavity between
+- **Glass Patches:** 
+  - `glass_inside_master/slave` - Inner glazing
+  - `glass_outside_master/slave` - Outer glazing
+  - Patches defined as `mappedWall` for coupled heat transfer
+- **Air Outlet:** `outflow` - controlled flow rate through 0.02 m² opening
+- **Atmosphere Coupling:** `atmosphere_ground` and `atmosphere_outlet` for ambient conditions
+
+## Physical Model
+
+### Flow
+- **Solver:** Compressible transient fluid solver (OpenFOAM 12)
+- **Turbulence Model:** k-epsilon RANS
+- **Buoyancy:** Hydrostatic initialization enabled (`hydrostaticInitialisation yes`)
+
+### Heat Transfer
+- **Thermal Baffle 1D:** Glass modeled with `compressible::thermalBaffle1D<eConstSolidThermoPhysics>`
+  - Thickness: 6 mm (`thickness 0.006`)
+  - Thermal conductivity: 0.03408 W/(m·K) (insulating glazing/coating)
+  - Density: 2500 kg/m³
+  - Specific heat capacity: 840 J/(kg·K)
+  - Molecular weight: 60.08 g/mol
+- **Turbulent Heat Transport:** Controlled via `alphat` with  Prandtl number (`Prt = 0.85`) 
+
+### Boundary Conditions
+
+#### Velocity (U)
+- `atmosphere`: `pressureInletOutletVelocity` - pressure-driven
+- `outflow`: `fixedValue`
+- `staticWalls` + Glass: `noSlip` - no-slip condition
+
+#### Temperature (T)
+- `atmosphere`: `inletOutlet` with `$!atmosphere/T`
+- `outflow`: `inletOutlet` with internal field
+- `staticWalls`: `fixedValue` with `$!surface/T`
+- `glassWalls`: `thermalBaffle1D` - coupled heat conduction
+
+#### Pressure (p_rgh)
+- Hydrostatic pressure with gravity correction
+- PCG solver with DIC preconditioner
+
+#### Turbulence (k, epsilon)
+- `atmosphere`/`outflow`: `inletOutlet` - bidirectional flow
+- `staticWalls`: Standard wall functions (`kqRWallFunction`, `epsilonWallFunction`)
+- **Glass Patches:** Minimal turbulence (`value uniform 1e-10`) to suppress turbulent heat transfer
+
+#### Thermal Diffusivity (alphat)
+- `staticWalls`: `alphatWallFunction` with `Prt = 0.85` (standard)
+- **Glass Patches:** `alphatJayatillekeWallFunction` with `Prt = 0.85` 
+
+## Numerical Settings
+
+### PIMPLE Algorithm (fvSolution)
+- `nOuterCorrectors`: 4
+- `nCorrectors`: 3
+- `nNonOrthogonalCorrectors`: 1
+- `nHydrostaticCorrectors`: 5
+- Mesh correction enabled (`correctMeshPhi yes`)
+
+### Relaxation Factors
+- Equations (U, h, k, epsilon, omega): 0.5 (strongly damped for stability)
+
+### Solver Tolerances
+- `p_rgh`: 1e-07 (absolute), 5% relative
+- Fields (U, h, k, epsilon): 1e-08 (absolute), 1% relative
+
+## Key Design Decisions
+
+### Turbulence Suppression at Glass
+**Problem:** Turbulent heat transport (`alphat * rho * Cp`) dominates molecular conduction and causes unphysically fast cooling (0.3 seconds to ambient temperature).
+
+**Solution:** (only if necessary)
+1. Minimal turbulent kinetic energy at glass: `k = 1e-10`
+2. Increased turbulent Prandtl number: `Prt = 10.0` (instead of 0.85)
+3. Effect: `alphat = nut/Prt` is strongly reduced → realistic time scales
+ 
+
+**Physical Background:**
+- Effective thermal conductivity: `k_eff = kappa (molecular) + alphat * rho * Cp (turbulent)`
+- With `alphat * rho * Cp ≈ alphat * 2500 * 840 = alphat * 2.1e6`, even small `alphat` dominates
+- Standard `Prt = 0.85` (for turbulent flow) is inappropriate for laminar boundary layers at glass
+- `Prt = 10.0` models near-laminar heat transfer at glass surfaces
+
+### Mapped Wall Coupling
+Glass patches are defined as `mappedWall` (master-slave pairs) for automatic value exchange between inner and outer surfaces. This enables coupled heat conduction without explicit BCs in field files.
+
+## Initialization
+- Temperature: `$!internalField/T`, `$!atmosphere/T`, `$!surface/T` (from `constant/initialisationConditions`)
+- Velocity: Rest state (0 m/s)
+- Turbulence: Low values (`k = 2.40e-5 m²/s²`, `epsilon = 5.70e-5 m²/s³`)
+
+## Known Challenges
+1. **Divergence at High Glass Temperatures:** Strong temperature gradients require careful relaxation and turbulence suppression
+2. **Mapped Wall Compatibility:** Not all BC types are compatible with `mappedWall` (e.g., `epsilonLowReWallFunction`)
+3. **Time Step Limitation:** Convection in cavity can cause high Courant numbers
+
+## Turbulence Parameter Functions
+
+### k (Turbulent Kinetic Energy)
+- **Units:** m²/s² (energy per mass)
+- **Physical Meaning:** Intensity of turbulent fluctuations (eddies)
+- **Effect:** Higher k → more turbulence → enhanced mixing of momentum, heat, mass
+- **At Glass:** Very low value (1e-10) suppresses eddy formation
+
+### epsilon (Turbulent Dissipation Rate)
+- **Units:** m²/s³ (energy dissipation per time and mass)
+- **Physical Meaning:** Rate at which turbulent energy converts to heat via viscous friction
+- **Relation:** `nut = Cmu * k²/epsilon` (turbulent viscosity)
+- **At Glass:** Low value with wall function for physical boundary layer
+
+### alphat (Turbulent Thermal Diffusivity)
+- **Units:** kg/(m·s) or Pa·s (like dynamic viscosity)
+- **Physical Meaning:** Turbulent heat transport strength (additional to molecular conduction)
+- **Calculation:** `alphat = nut/Prt`
+- **Effect on Heat:** `k_eff = kappa + alphat * rho * Cp`
+- **At Glass:** `Prt = 10.0` strongly reduces turbulent heat transport
+
+## Version History
+- **V04:** Optimized turbulence BCs for realistic glass heat transfer
+- Earlier versions: Geometry and baffle implementation development
+
+## Project
+Box Window Optimization
+OpenFOAM Version: 12
