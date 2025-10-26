@@ -46,7 +46,7 @@ boundaryField
         value           uniform 0;
     }
 
-    window 
+    "window|window_refinement"
     {
         $staticWalls;
     }

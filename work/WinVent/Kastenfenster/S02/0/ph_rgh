@@ -35,7 +35,7 @@ boundaryField
         value           $internalField;
     }
 
-    window 
+    "window|window_refinement"
     {
         $staticWalls;
     }

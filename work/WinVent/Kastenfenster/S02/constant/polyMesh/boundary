@@ -14,7 +14,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-13
+14
 (
     atmosphere_ground
     {
@@ -26,15 +26,15 @@ atmosphere
 wall
 )
 ;
-        nFaces          440;
-        startFace       2661362;
+        nFaces          401;
+        startFace       1372738;
     }
     atmosphere_outlet
     {
         type            patch;
         inGroups        List<word> 1(atmosphere);
-        nFaces          4854;
-        startFace       2661802;
+        nFaces          3838;
+        startFace       1373139;
     }
     walls
     {
@@ -46,22 +46,41 @@ staticWalls
 wall
 )
 ;
-        nFaces          39745;
-        startFace       2666656;
+        nFaces          36428;
+        startFace       1376977;
     }
     window
     {
         type            wall;
-        inGroups        List<word> 1(wall);
-        nFaces          115438;
-        startFace       2706401;
+        inGroups        List<word> 
+2
+(
+window
+wall
+)
+;
+        nFaces          36083;
+        startFace       1413405;
+    }
+    window_refinement
+    {
+        type            wall;
+        inGroups        List<word> 
+2
+(
+window
+wall
+)
+;
+        nFaces          407;
+        startFace       1449488;
     }
     outflow
     {
         type            patch;
         inGroups        List<word> 1(outflow);
         nFaces          12;
-        startFace       2821839;
+        startFace       1449895;
     }
     glass_outside_top_master
     {
@@ -74,8 +93,8 @@ mapped
 glass_outside_top
 )
 ;
-        nFaces          2600;
-        startFace       2821851;
+        nFaces          1043;
+        startFace       1449907;
         neighbourRegion region0;
         neighbourPatch  glass_outside_top_slave;
         transformType   none;
@@ -92,8 +111,8 @@ mapped
 glass_outside_top
 )
 ;
-        nFaces          2600;
-        startFace       2824451;
+        nFaces          1043;
+        startFace       1450950;
         neighbourRegion region0;
         neighbourPatch  glass_outside_top_master;
         transformType   none;
@@ -110,8 +129,8 @@ mapped
 glass_outside_bottom
 )
 ;
-        nFaces          4119;
-        startFace       2827051;
+        nFaces          2895;
+        startFace       1451993;
         neighbourRegion region0;
         neighbourPatch  glass_outside_bottom_slave;
         transformType   none;
@@ -128,8 +147,8 @@ mapped
 glass_outside_bottom
 )
 ;
-        nFaces          4119;
-        startFace       2831170;
+        nFaces          2895;
+        startFace       1454888;
         neighbourRegion region0;
         neighbourPatch  glass_outside_bottom_master;
         transformType   none;
@@ -146,8 +165,8 @@ mapped
 glass_inside_top
 )
 ;
-        nFaces          3272;
-        startFace       2835289;
+        nFaces          1746;
+        startFace       1457783;
         neighbourRegion region0;
         neighbourPatch  glass_inside_top_slave;
         transformType   none;
@@ -164,8 +183,8 @@ mapped
 glass_inside_top
 )
 ;
-        nFaces          3272;
-        startFace       2838561;
+        nFaces          1746;
+        startFace       1459529;
         neighbourRegion region0;
         neighbourPatch  glass_inside_top_master;
         transformType   none;
@@ -182,8 +201,8 @@ mapped
 glass_inside_bottom
 )
 ;
-        nFaces          4926;
-        startFace       2841833;
+        nFaces          1730;
+        startFace       1461275;
         neighbourRegion region0;
         neighbourPatch  glass_inside_bottom_slave;
         transformType   none;
@@ -200,8 +219,8 @@ mapped
 glass_inside_bottom
 )
 ;
-        nFaces          4926;
-        startFace       2846759;
+        nFaces          1730;
+        startFace       1463005;
         neighbourRegion region0;
         neighbourPatch  glass_inside_bottom_master;
         transformType   none;

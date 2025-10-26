@@ -17,6 +17,7 @@ surfaces
 (
     "walls.stl"
     "window.stl"
+    "window_refinement.stl"
     "atmosphere_ground.stl"
     "atmosphere_outlet.stl"
     "glass_outside_top.stl"

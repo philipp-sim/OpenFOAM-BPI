@@ -18,11 +18,11 @@ FoamFile
 
 internalField
     {
-        T                   293.15;
-        CO2		    400;
+        T                   294.15;
+        CO2		    3000;
         relHumidity	    0.50;
-        specificHumidity    0.01531;
-        CO2relativdensity   0.0007031;
+        specificHumidity    .00782525706161036696;
+        Y_CO2    .00455038471597969817;
     }
 
 atmosphere
@@ -30,13 +30,13 @@ atmosphere
         T                   273.15;
         CO2		    400;
         relHumidity	    0.80;
-        specificHumidity    0.00961;
-        CO2relativdensity   0.0007398;
+        specificHumidity    .00301768834629310537;
+        Y_CO2    .00060753674540700060;
     }
 
 surface
     {
-        T                   293.15;
+        T                   292.15;
     }
 
 

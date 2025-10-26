@@ -51,7 +51,7 @@ solvers
         relTol          0;
     }
 
-    "(rho|U|h|k|epsilon|omega|CO2relativdensity|specificHumidity)"
+    "(rho|U|h|k|epsilon|omega|Y_CO2|specificHumidity)"
     {
         solver          smoothSolver;
         smoother        symGaussSeidel;
@@ -59,7 +59,7 @@ solvers
         relTol          0.01;
     }
 
-    "(rho|U|h|k|epsilon|omega|CO2relativdensity|specificHumidity)Final"
+    "(rho|U|h|k|epsilon|omega|Y_CO2|specificHumidity)Final"
     {
         $U;
         relTol          0;

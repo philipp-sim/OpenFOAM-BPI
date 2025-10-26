@@ -31,9 +31,11 @@ boundaryField
         inlet	    	uniform $!atmosphere/CO2;
     }
 
-    staticWalls
+    outflow
     {
-        type            zeroGradient;
+        type            inletOutlet;
+        inletValue      $internalField;
+        inlet	    	$internalField;
     }
     
     ".*"

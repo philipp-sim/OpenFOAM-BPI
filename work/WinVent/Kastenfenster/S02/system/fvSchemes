@@ -26,6 +26,20 @@ gradSchemes
 
 divSchemes
 {
+    default                         none;
+    div(phi,U)                      Gauss limitedLinearV 0.5;
+    div(phi,e)                      Gauss limitedLinear01 0.5;
+    div(phi,h)                      Gauss limitedLinear01 0.5;
+    div(phi,K)                      Gauss limitedLinear01 0.5;
+    div(phi,(p|rho))                Gauss limitedLinear01 0.5;
+    div(phi,k)                      Gauss limitedLinear01 0.5;
+    div(phi,epsilon)               Gauss limitedLinear01 0.5;
+    div(((rho*nuEff)*dev2(T(grad(U))))) Gauss limitedLinear01 0.5;
+    div(phi,CO2) Gauss limitedLinear01 0.5;
+}
+
+/*divSchemes
+{
     default         none;
 
     div(phi,U)      bounded Gauss vanLeerV; // // Gauss limitedLinearV 0.3; //Gauss linearUpwind grad(U);
@@ -37,7 +51,7 @@ divSchemes
     div(((rho*nuEff)*dev2(T(grad(U))))) Gauss linear;
     div(phi,CO2relativdensity)  bounded Gauss upwind;
     div(phi,specificHumidity) bounded Gauss upwind;
-}
+}*/
 
 laplacianSchemes
 {
