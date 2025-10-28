@@ -48,7 +48,7 @@ boundaryField
         type            zeroGradient;
     }
 
-    glassWalls
+    glassWallsOutside
     {
         type            compressible::thermalBaffle1D<eConstSolidThermoPhysics>;
         thickness       uniform 0.006; // 6mm floatglass
@@ -74,60 +74,88 @@ boundaryField
             rho             2500;
         }
     }
+
+    glassWallsInside
+    {
+        type            compressible::thermalBaffle1D<eConstSolidThermoPhysics>;
+        thickness       uniform 0.024; // 4-16-4 mm 
+        qs              uniform 0;
+        qr              none;
+        qrRelaxation    1;
+        
+        specie
+        {
+            molWeight       60.08; //molweight of SiO2
+        }
+        transport
+        {
+            kappa           0.0324; // W/(m K) => Ug 1.1 W/(m2 K) => 0.909 (m2 K)/W - 0.17 (Rfsi & Rfse) => 1.35 W/(m2 K) * 0.024m ==> 0.0324
+        }
+        thermodynamics
+        {
+            hf              0;
+            Cv              840; // specific heat capacity [J/(kg K)
+        }
+        equationOfState
+        {
+            rho             2500;
+        }
+    }
     
      
     glass_outside_top_master
     {
-        $glassWalls;
+        $glassWallsOutside;
         neighbourPatch  glass_outside_top_slave;
-        value           uniform $!atmosphere/T;
+        value uniform   $!atmosphere/T;
+        
     }
 
     glass_outside_top_slave
     {
-        $glassWalls;
+        $glassWallsOutside;
         neighbourPatch  glass_outside_top_master;
         value           uniform $!atmosphere/T;
     } 
     
     glass_outside_bottom_master
     {
-        $glassWalls;
+        $glassWallsOutside;
         neighbourPatch  glass_outside_bottom_slave;
         value           uniform $!atmosphere/T;
     }
 
     glass_outside_bottom_slave
     {
-        $glassWalls;
+        $glassWallsOutside;
         neighbourPatch  glass_outside_bottom_master;
         value           uniform $!atmosphere/T;
     } 
 
     glass_inside_top_master
     {
-        $glassWalls;
+        $glassWallsInside;
         neighbourPatch  glass_inside_top_slave;
         value           $internalField;
     }
 
     glass_inside_top_slave
     {
-        $glassWalls;
+        $glassWallsInside;
         neighbourPatch  glass_inside_top_master;
         value           $internalField;
     }
 
     glass_inside_bottom_master
     {
-        $glassWalls;
+        $glassWallsInside;
         neighbourPatch  glass_inside_bottom_slave;
         value           $internalField;
     }
 
     glass_inside_bottom_slave
     {
-        $glassWalls;
+        $glassWallsInside;
         neighbourPatch  glass_inside_bottom_master;
         value           $internalField;
     }

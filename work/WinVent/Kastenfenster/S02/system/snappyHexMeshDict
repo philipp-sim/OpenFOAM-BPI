@@ -164,7 +164,7 @@ castellatedMeshControls
 
         atmosphere_outlet
         {
-            level       (2 2);
+            level       (2 3);
             patchInfo
             {
                 type patch;
@@ -184,7 +184,7 @@ castellatedMeshControls
 
         window
         {
-            level       (3 5); //(3 6); 887766
+            level       (3 5); //(3 5) skew 5.99581 && 481639, (3 6) 923458
             patchInfo
             {
                 type wall;
@@ -204,7 +204,7 @@ castellatedMeshControls
         
         glass_outside_top
         {
-            level       (3 5); // (3 5)
+            level       (3 4); // (3 5)
             faceZone    glass_outside_top;
             cellZone    glass_outside_top;
             cellZoneInside inside;
@@ -218,7 +218,7 @@ castellatedMeshControls
         
         glass_outside_bottom
         {
-            level       (3 5);
+            level       (3 5); // (3 5) skew 5.99581 && 481639,
             faceZone    glass_outside_bottom;
             cellZone    glass_outside_bottom;
             cellZoneInside inside;
@@ -229,7 +229,6 @@ castellatedMeshControls
                 inGroups        (glass);
             }
         }
-        
 
 
         glass_inside_top
