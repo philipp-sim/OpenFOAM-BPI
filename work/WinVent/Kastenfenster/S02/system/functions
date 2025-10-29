@@ -205,27 +205,16 @@ DataExtract
                 std::remove(mergedOutputPath.c_str());
             }
 
-            fileName procOutputPath;
-            if (isParallel)
-            {
-                procOutputPath = mesh.time().path() / (fieldName + "_" + Foam::name(roundedTime) + "_proc" + Foam::name(Pstream::myProcNo()));
-            }
-            else
-            {
-                procOutputPath = mergedDir / Foam::name(roundedTime);
-            }
-
-            if (isFile(procOutputPath))
-            {
-                std::remove(procOutputPath.c_str());
-            }
-
-            std::ostringstream buffer;
+            // Sammle Daten lokal in String-Liste
+            DynamicList<string> localDataList;
 
             if (mesh.foundObject<volScalarField>(fieldName))
             {
                 const volScalarField& field = mesh.lookupObject<volScalarField>(fieldName);
-                buffer << "x,y,z," << fieldName << "\n";
+                if (Pstream::myProcNo() == 0)
+                {
+                    localDataList.append("x,y,z," + fieldName);
+                }
 
                 forAll(field, cellI)
                 {
@@ -235,14 +224,19 @@ DataExtract
                         (p.z() >= lower.z() && p.z() <= upper.z()))
                     {
                         scalar val = field[cellI];
-                        buffer << p.x() << "," << p.y() << "," << p.z() << "," << val << "\n";
+                        std::ostringstream oss;
+                        oss << p.x() << "," << p.y() << "," << p.z() << "," << val;
+                        localDataList.append(oss.str());
                     }
                 }
             }
             else if (mesh.foundObject<volVectorField>(fieldName))
             {
                 const volVectorField& field = mesh.lookupObject<volVectorField>(fieldName);
-                buffer << "x,y,z," << fieldName << "_x," << fieldName << "_y," << fieldName << "_z," << fieldName << "_mag\n";
+                if (Pstream::myProcNo() == 0)
+                {
+                    localDataList.append("x,y,z," + fieldName + "_x," + fieldName + "_y," + fieldName + "_z," + fieldName + "_mag");
+                }
 
                 forAll(field, cellI)
                 {
@@ -252,9 +246,11 @@ DataExtract
                         (p.z() >= lower.z() && p.z() <= upper.z()))
                     {
                         const vector& val = field[cellI];
-                        buffer << p.x() << "," << p.y() << "," << p.z() << ","
-                               << val.x() << "," << val.y() << "," << val.z() << ","
-                               << mag(val) << "\n";
+                        std::ostringstream oss;
+                        oss << p.x() << "," << p.y() << "," << p.z() << ","
+                            << val.x() << "," << val.y() << "," << val.z() << ","
+                            << mag(val);
+                        localDataList.append(oss.str());
                     }
                 }
             }
@@ -264,80 +260,50 @@ DataExtract
                 return true;
             }
 
-            std::ofstream output(procOutputPath.c_str());
-            output << buffer.str();
-            output.close();
+            // Zähle Daten pro Prozess mit reduce
+            label localCount = localDataList.size();
+            label globalCount = 0;
+            reduce(localCount, sumOp<label>());
+            globalCount = localCount;
 
-            Info << fieldName << " values written to " << procOutputPath << endl;
+            Info << fieldName << ": " << localDataList.size() << " local entries, " << globalCount << " global total" << endl;
 
-            if (isParallel)
+            // Nur Master schreibt finale Datei - sammelt Daten mit MPI direkt (non-blocking)
+            if (Pstream::myProcNo() == 0)
             {
-                scalar dummy = 0;
-                Pstream::scatter(dummy);
+                std::ofstream output(mergedOutputPath.c_str(), std::ios::app);
+                output << "Timestep " << Foam::name(roundedTime) << "\n";
 
-                if (Pstream::myProcNo() == 0)
+                // Schreibe Master-Daten
+                forAll(localDataList, i)
                 {
-                    std::ofstream merged(mergedOutputPath.c_str(), std::ios::app);
-                    merged << "Timestep" << Foam::name(roundedTime) << "\n";
+                    output << "\"" << localDataList[i] << "\"\n";
+                }
 
-                    for (int procNo = 0; procNo < Pstream::nProcs(); ++procNo)
+                // Sammle Daten von anderen Prozessoren
+                if (isParallel)
+                {
+                    for (int procNo = 1; procNo < Pstream::nProcs(); ++procNo)
                     {
-                        fileName procDir = mesh.time().globalPath() / ("processor" + Foam::name(procNo));
-                        fileName filePath = procDir / (fieldName + "_" + Foam::name(roundedTime) + "_proc" + Foam::name(procNo));
-                        const int maxWaitMs = 1000;
-                        bool fileAvailable = false;
-                        for (int waitMs = 0; waitMs < maxWaitMs; ++waitMs)
-                        {
-                            if (isFile(filePath))
-                            {
-                                fileAvailable = true;
-                                break;
-                            }
-                            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                        }
+                        List<string> recvData;
+                        IPstream fromProc(Pstream::commsTypes::scheduled, procNo);
+                        fromProc >> recvData;
 
-                        if (fileAvailable)
+                        forAll(recvData, i)
                         {
-                            std::ifstream fin(filePath.c_str());
-                            std::string line;
-                            bool firstLine = true;
-                            while (std::getline(fin, line))
-                            {
-                                if (firstLine) { firstLine = false; continue; }
-                                merged << "\"" << line << "\"\n";
-                            }
-                            fin.close();
-                            std::remove(filePath.c_str());
-                        }
-                        else
-                        {
-                            Info << "Missing file from processor" << procNo << ": " << filePath << endl;
+                            output << "\"" << recvData[i] << "\"\n";
                         }
                     }
-
-                    merged.close();
-                    Info << "Appended data block for time " << roundedTime << " to " << mergedOutputPath << endl;
                 }
+
+                output.close();
+                Info << "Appended data block for time " << roundedTime << " to " << mergedOutputPath << endl;
             }
-            else
+            else if (isParallel)
             {
-                std::ifstream fin(procOutputPath.c_str());
-                std::ofstream merged(mergedOutputPath.c_str(), std::ios::app);
-                std::string line;
-                bool firstLine = true;
-
-                merged << Foam::name(roundedTime) << "\n";
-
-                while (std::getline(fin, line))
-                {
-                    if (firstLine) { firstLine = false; continue; }
-                    merged << "\"" << line << "\"\n";
-                }
-
-                fin.close();
-                merged.close();
-                std::remove(procOutputPath.c_str());
-                Info << "Appended data block for time " << roundedTime << " to " << mergedOutputPath << " (serial mode)" << endl;
+                // Non-Master sendet Daten zum Master
+                OPstream toMaster(Pstream::commsTypes::scheduled, 0);
+                toMaster << localDataList;
             }
 
             return true;
@@ -836,9 +802,9 @@ DataExtract
         {
             lastWrittenTime = roundedTime;
             Info << "Writing U, CO2 and T data for time " << roundedTime << endl;
-            extractFieldData("U", vector(0, -0.3, 0), vector(4.894, 3.763, 2.69), roundedTime);
-            extractFieldData("CO2", vector(0, -0.3, 0), vector(4.894, 3.763, 2.69), roundedTime);
-            extractFieldData("T", vector(0, -0.3, 0), vector(4.894, 3.763, 2.69), roundedTime);
+            extractFieldData("U", vector(0, -0.313, 0), vector(4.894, 3.763, 2.69), roundedTime);
+            extractFieldData("CO2", vector(0, -0.313, 0), vector(4.894, 3.763, 2.69), roundedTime);
+            extractFieldData("T", vector(0, -0.313, 0), vector(4.894, 3.763, 2.69), roundedTime);
             //extractFieldData("alphat", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             //extractFieldData("epsilon", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             //extractFieldData("k", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);

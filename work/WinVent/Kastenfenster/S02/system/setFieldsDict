@@ -21,7 +21,7 @@ regions
 (
     boxToCell
     {
-	box (0.730 -1.202 0) (2.730 -0.202 3);
+	box (0.730 -1.313 0) (2.730 -0.215 3);
         fieldValues
         (
             volScalarFieldValue T $!atmosphere/T

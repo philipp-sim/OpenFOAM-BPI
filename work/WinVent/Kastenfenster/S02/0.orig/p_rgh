@@ -43,16 +43,19 @@ boundaryField
     }
 
     outflow
-    { // no flow through outflow
+    /*{ // no flow through outflow
         type            fixedFluxPressure;
         value           $internalField;
-    }
+    }*/
     /*{ // flow through outflow bec. pressure driven
         type            prghTotalHydrostaticPressure;
         p0              $internalField;
         gamma           1;
         value           $internalField;
     }*/
+    {
+        type            zeroGradient;
+    }
 
     "glass_.*"
     {
