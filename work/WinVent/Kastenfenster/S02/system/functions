@@ -151,7 +151,179 @@ CO2Eqn
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+Humidity
+{
+    type	coded;
+    libs	("libutilityFunctionObjects.so");
+    writeControl    writeTime;
 
+    codeInclude
+    #{
+		#include "volFields.H"
+		#include "fvc.H"
+		#include "fvm.H"
+		#include "fvModels.H"
+		#include "fvConstraints.H"
+    #};
+
+    codeExecute
+    #{
+    	auto ensureFieldExists = [&](const word& name, const dimensionSet& dims)
+		{
+			if (!mesh().objectRegistry::foundObject<volScalarField>(name))
+			{
+				Info << "Creating " << name << " field" << endl;
+				auto* ptr = new volScalarField(
+					IOobject(name, mesh().time().name(), mesh(), IOobject::READ_IF_PRESENT, IOobject::AUTO_WRITE),
+					mesh(),
+					dimensionedScalar(name, dims, 0.0)
+				);
+				mesh().objectRegistry::store(ptr);
+			}
+		};
+        
+        IOdictionary physicalProperties
+		(
+			IOobject
+			(
+				"physicalProperties",
+				mesh().time().constant(),
+				mesh(),
+				IOobject::MUST_READ,
+				IOobject::NO_WRITE
+			)
+		);
+
+    	//const volScalarField& T = mesh().lookupObject<volScalarField>("T");
+        volScalarField& T = mesh().lookupObjectRef<volScalarField>("T");
+        const volVectorField& U = mesh().lookupObject<volVectorField>("U");
+        volScalarField& CO2 = mesh().lookupObjectRef<volScalarField>("CO2");
+		const Foam::fvModels& fvModels(Foam::fvModels::New(this->mesh()));
+		const Foam::fvConstraints& fvConstraints(Foam::fvConstraints::New(this->mesh()));
+		const dimensionedScalar D_hum(physicalProperties.lookup("D_hum"));
+    	const dimensionedScalar P("P", dimensionSet(1, -1, -2, 0, 0, 0, 0), 101325);// Pa standard atmosphere pressure 
+        const dimensionedScalar T0("T0", T.dimensions(), 273.15);
+        volScalarField T_Celsius = T - T0;
+        volScalarField p_sat = dimensionedScalar("Ptet", P.dimensions(), 610.78) * exp((17.27 * T_Celsius) / (T_Celsius + dimensionedScalar("T0", T.dimensions(), 273.15))); 
+        //p_sat is Pa = 610.78 or kPa = 0.61078
+        volScalarField q_s = ((0.622 * p_sat) / (P - p_sat));
+
+        ensureFieldExists("relHumidity", dimensionSet(0,0,0,0,0,0,0));
+        volScalarField& relHumidity = mesh().lookupObjectRef<volScalarField>("relHumidity");
+        ensureFieldExists("specificHumidity", dimensionSet(0,0,0,0,0,0,0));
+        volScalarField& specificHumidity = mesh().lookupObjectRef<volScalarField>("specificHumidity");
+        relHumidity = specificHumidity / q_s;
+
+        //calcualte rho_humair 
+		const dimensionedScalar Rm("Rm", dimensionSet(1, 2, -2, -1 , -1, 0, 0), 8.314);// J/(mol*K) universal gas constant
+		const dimensionedScalar M_C("M_C", dimensionSet(1, 0, 0, 0, -1, 0, 0), 12.0107e-3); // kg/mol
+		const dimensionedScalar M_N("M_N", dimensionSet(1, 0, 0, 0, -1, 0, 0), 14.0067e-3); // kg/mol
+		const dimensionedScalar M_O("M_O", dimensionSet(1, 0, 0, 0, -1, 0, 0), 15.9994e-3); // kg/mol
+		const dimensionedScalar M_Ar("M_Ar", dimensionSet(1, 0, 0, 0, -1, 0, 0), 39.948e-3); // kg/mol  
+        const dimensionedScalar M_H("M_H", dimensionSet(1, 0, 0, 0, -1, 0, 0), 2.016e-3); // kg/mol
+        const dimensionedScalar Rd("Rd", dimensionSet(0, 2, -2, -1 , 0, 0, 0), 287.058);// J/(kg·K) specific gas constant for dry air
+        const dimensionedScalar Rv("Rv", dimensionSet(0, 2, -2, -1 , 0, 0, 0), 461.495);// J/(kg·K) specific gas constant for water vapor
+        dimensionedScalar M_CO2 = M_C + 2 * M_O; // kg/mol Molmass
+        dimensionedScalar M_H2O = 2 * M_H + M_O; // kg/mol Molmass
+	volScalarField M_Air = M_N * 0.78 + M_O * (0.21 - CO2/1e6) + M_Ar * 0.01 + M_CO2 * (CO2/1e6); // kg/mol Molmass
+        volScalarField pv = p_sat * relHumidity; //Pa partial pressure of water vapor
+        tmp<volScalarField> pd = P - pv; // Pa partial pressure of dry air
+
+        volScalarField rho_humair
+        (
+            IOobject
+            (
+                "rho_humair",
+				mesh().time().constant(),
+				mesh(),
+                IOobject::NO_READ,
+                IOobject::NO_WRITE
+            ),
+            (pd*M_Air + pv*M_H2O) / (Rm * T)
+        );
+
+        surfaceScalarField phi_hum = fvc::interpolate(rho_humair) * fvc::interpolate(U) & mesh().Sf(); // phi = rho_humair * U
+
+        fvScalarMatrix humEqn =
+			fvm::ddt(rho_humair, specificHumidity)
+            + fvm::div(phi_hum, specificHumidity, "div(phi,specificHumidity)")
+			- fvm::laplacian(rho_humair*D_hum, specificHumidity)
+			== fvModels.source(rho_humair, specificHumidity);
+	
+		fvConstraints.constrain(humEqn);
+		humEqn.relax();
+		humEqn.solve();
+        
+        relHumidity = specificHumidity / q_s; // update rel
+        label wallPatchID = -1;
+        forAll(mesh().boundary(), patchI)
+        {
+            if (mesh().boundary()[patchI].name() == "walls")
+            {
+                wallPatchID = patchI;
+                break;
+            }
+        }
+        if (wallPatchID == -1)
+        {
+            FatalErrorInFunction << "Patch 'walls' not found!" << exit(FatalError);
+        }
+        
+        ensureFieldExists("condensate", dimensionSet(1,-3,0,0,0,0,0));
+        volScalarField& condensate = mesh().lookupObjectRef<volScalarField>("condensate");
+
+        const labelList& wallCells = mesh().boundary()[wallPatchID].faceCells();
+        forAll(wallCells, j)
+        {
+            label cellI = wallCells[j];
+
+            if (relHumidity[cellI] > 1.0)
+            {
+                scalar excessRH = relHumidity[cellI] - 1.0;
+                scalar delta_q = excessRH * q_s[cellI];                  // [kg/kg]
+                scalar delta_mass = delta_q * rho_humair[cellI];         // [kg/m³]
+
+                condensate[cellI] += delta_mass;                         
+                relHumidity[cellI] = 1.0;                                
+                specificHumidity[cellI] = q_s[cellI];                    
+            }
+        }
+        
+
+
+        /*
+        // Condensation if relHumidity > 1.0
+        volScalarField excessRH = max(relHumidity - scalar(1.0), scalar(0.0));
+        volScalarField delta_q = excessRH * q_s; // [g/kg]
+        volScalarField delta_mass = delta_q * rho_humair; // [g/m³], actual condensed water mass
+        
+        ensureFieldExists("condensate", dimensionSet(1,-3,0,0,0,0,0));
+        volScalarField& condensate = mesh().lookupObjectRef<volScalarField>("condensate");
+        condensate += delta_mass; // Add to stored condensate
+        relHumidity = min(relHumidity, scalar(1.0)); // Cap RH at 100%
+        specificHumidity = relHumidity * q_s; // Update SH after condensation
+
+
+        const dimensionedScalar L_v("L_v", dimensionSet(0, 2, -2, 0, 0, 0, 0), 2.5e6); // z. B. 2.5 MJ/kg
+        const dimensionedScalar cp_air("cp_air", dimensionSet(0, 2, -2, -1, 0, 0, 0), 1005.0); // J/(kg·K)
+        volScalarField delta_T = (delta_mass * L_v) / (rho_humair * cp_air);
+        T += delta_T;
+        T.write();
+
+
+        Info << "Max delta_T durch Kondensation: " << gMax(delta_T) << " K" << endl;
+        Info << "gMax(relHumidity): " << gMax(relHumidity) << endl;
+        Info << "gMax(delta_mass): " << gMax(delta_mass) << " kg/m3" << endl;
+        Info << "gMax(delta_T): " << gMax(delta_T) << " K" << endl;
+        Info << "gMax(T): " << gMax(T) << " K" << endl;
+
+        */
+
+
+    #};
+}
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 
 DataExtract
@@ -805,6 +977,7 @@ DataExtract
             extractFieldData("U", vector(0, -0.313, 0), vector(4.894, 3.763, 2.69), roundedTime);
             extractFieldData("CO2", vector(0, -0.313, 0), vector(4.894, 3.763, 2.69), roundedTime);
             extractFieldData("T", vector(0, -0.313, 0), vector(4.894, 3.763, 2.69), roundedTime);
+            extractFieldData("specificHumidity", vector(0, -0.313, 0), vector(4.894, 3.763, 2.69), roundedTime);
             //extractFieldData("alphat", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             //extractFieldData("epsilon", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);
             //extractFieldData("k", vector(0, -0.2, 0), vector(3.4, 3.3, 2.7), roundedTime);

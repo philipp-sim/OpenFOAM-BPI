@@ -36,6 +36,7 @@ divSchemes
     div(phi,epsilon)               Gauss limitedLinear01 0.5;
     div(((rho*nuEff)*dev2(T(grad(U))))) Gauss limitedLinear01 0.5;
     div(phi,CO2) Gauss limitedLinear01 0.5;
+    div(phi,specificHumidity) Gauss limitedLinear01 0.5;
 }
 
 /*divSchemes
